@@ -19,6 +19,31 @@ Ideas grouped by rough git branch scope. Sourced from personal brainstorming + u
 - Seat number toggle should be from either edge (or both)
 - Include empty chairs on edges option
 - Never allow a section to be one person wide (validate/warn)
+- Weird horizontal scrolling sometimes required — chart overflows viewport awkwardly
+
+---
+
+## `fix/stagger`
+- Stagger toggle should be a proper stagger/grid switch, not just a CSS offset
+- Bug: in "unstaggered" mode, a centered odd-count row next to a centered even-count row
+  will still appear staggered due to centering math — needs grid alignment to fix properly
+
+---
+
+## `fix/export`
+- Current export is just `window.print()` — not a real PDF, formatting is poor
+- Needs a proper print stylesheet or server-side PDF generation
+
+---
+
+## `feature/navbar`
+- Add a navigation bar as the app grows beyond a single flow
+
+---
+
+## `feature/sample-rosters`
+- Ship sample roster CSVs with the app so new users can try it immediately
+- Could include generic SATB, Men's Chorus (T1/T2/Bar/Bass), Women's Chorus, etc.
 
 ---
 
