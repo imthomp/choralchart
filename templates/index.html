@@ -154,15 +154,30 @@
             </form>
         </div>
 
+        <!-- Load saved chart -->
+        <details class="advanced">
+            <summary>Load a saved chart</summary>
+            <div class="card" style="margin-top: 0.5rem;">
+                <p>Open a <strong>.choralchart</strong> file you previously saved from the editor.</p>
+                <form action="{{ url_for('load') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                    <div class="file-input-wrapper">
+                        <input type="file" name="file" id="chart-file" accept=".choralchart,.json" required>
+                        <label for="chart-file" class="file-label">Choose .choralchart file...</label>
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-full">Load Chart</button>
+                </form>
+            </div>
+        </details>
+
         <!-- Advanced: CSV upload -->
         <details class="advanced">
             <summary>Advanced: Upload a CSV file</summary>
             <div class="card" style="margin-top: 0.5rem;">
-                <p>CSV with columns: <strong>name</strong>, <strong>voice_part</strong>, <strong>height</strong> (inches).</p>
+                <p>CSV or Excel file with columns: <strong>name</strong>, <strong>voice_part</strong>, <strong>height</strong> (inches).</p>
                 <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" class="upload-form">
                     <div class="file-input-wrapper">
-                        <input type="file" name="file" id="file" accept=".csv" required>
-                        <label for="file" class="file-label">Choose CSV file...</label>
+                        <input type="file" name="file" id="file" accept=".csv,.xlsx" required>
+                        <label for="file" class="file-label">Choose CSV or Excel file...</label>
                     </div>
                     <button type="submit" class="btn btn-secondary btn-full">Upload & Continue</button>
                 </form>

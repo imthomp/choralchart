@@ -10,6 +10,7 @@ body {
     background-color: #f0f2f5;
     color: #333;
     line-height: 1.6;
+    scrollbar-gutter: stable;
 }
 
 /* Navbar */
@@ -512,7 +513,7 @@ button:hover, .button:hover {
     border-radius: 10px 10px 0 0;
 }
 
-.chart-wrapper.flipped .conductor-label {
+.chart-wrapper.flipped .conductor-row {
     margin-top: 0;
     margin-bottom: 0.75rem;
 }
@@ -536,6 +537,16 @@ button:hover, .button:hover {
 }
 
 /* Conductor label (small square) */
+.conductor-row {
+    display: flex;
+    align-items: center;
+    margin-top: 0.75rem;
+    /* The spacer mirrors .row-label width so the label centres under the seats */
+}
+.conductor-spacer {
+    width: 55px;
+    flex-shrink: 0;
+}
 .conductor-label {
     display: inline-block;
     background: linear-gradient(135deg, #1e3a5f 0%, #2c3e50 100%);
@@ -544,7 +555,6 @@ button:hover, .button:hover {
     font-weight: 600;
     font-size: 0.8rem;
     border-radius: 6px;
-    margin-top: 0.75rem;
 }
 
 /* Chart container */

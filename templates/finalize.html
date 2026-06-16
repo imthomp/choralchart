@@ -71,7 +71,7 @@
     {% include 'navbar.html' %}
     <div class="container">
         <div class="page-header">
-            <h1>Seating Chart</h1>
+            <h1>{% if chart_title is defined and chart_title %}{{ chart_title }}{% else %}Seating Chart{% endif %}</h1>
             <p class="subtitle">{{ num_singers }} singers | {{ rows }} rows | {{ layout }} layout</p>
         </div>
 
@@ -98,7 +98,10 @@
                         </div>
                     {% endfor %}
                 </div>
-                <div class="conductor-label">Conductor</div>
+                <div class="conductor-row">
+                    <div class="conductor-spacer"></div>
+                    <div class="conductor-label">Conductor</div>
+                </div>
             </div>
 
             <div class="chart-footer">

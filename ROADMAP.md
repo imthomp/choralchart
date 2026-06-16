@@ -1,4 +1,4 @@
-# Choralchart — Roadmap
+# ChoralChart — Roadmap
 
 Effort and impact are rated Low / Med / High.
 ★ = came directly from assistant director feedback (Feb 2026).
@@ -9,16 +9,16 @@ Effort and impact are rated Low / Med / High.
 
 | Branch | Idea | Effort | Impact |
 |--------|------|--------|--------|
-| `fix/layout-polish` | Never allow a section to be one person wide (warn) ★ | Low | High |
-| `feature/ordering` | Up/down row ordering, not just left/right ★ | Med | High |
-| `feature/roster-management` | Singer withdrawal: adjust row without full rebuild ★ | Med | High |
-| `feature/roster-management` | .xlsx input support (real-world rosters from Excel) ★ | Med | Med |
-| `feature/mixed-seating` | Shuffle/mix mode: no same-voice-part neighbors ★ | Med | Med |
-| `feature/undo-redo` | Undo/redo for drag-and-drop and edits ★ | High | High |
-| `feature/sharing` | Shareable link to send chart to students ★ | High | High |
-| `feature/sharing` | "Living document" link that updates in place ★ | High | High |
-| `feature/persistence` | Save and reload charts across sessions ★ | High | High |
-| `feature/piece-specific-roles` | Piece-specific role assignment (cross-part roles) ★ | High | Med |
+| ~~`fix/layout-polish`~~ | ~~Never allow a section to be one person wide (warn) ★~~ | ~~Low~~ | ~~High~~ |
+| ~~`feature/ordering`~~ | ~~Up/down row ordering, not just left/right ★~~ | ~~Med~~ | ~~High~~ |
+| ~~`feature/roster-management`~~ | ~~Singer withdrawal: adjust row without full rebuild ★~~ | ~~Med~~ | ~~High~~ |
+| ~~`feature/roster-management`~~ | ~~.xlsx input support (real-world rosters from Excel) ★~~ | ~~Med~~ | ~~Med~~ |
+| ~~`feature/mixed-seating`~~ | ~~Shuffle/mix mode: no same-voice-part neighbors ★~~ | ~~Med~~ | ~~Med~~ |
+| ~~`feature/undo-redo`~~ | ~~Undo/redo for drag-and-drop and edits ★~~ | ~~High~~ | ~~High~~ |
+| ~~`feature/sharing`~~ | ~~Shareable link to send chart to students ★~~ | ~~High~~ | ~~High~~ |
+| ~~`feature/sharing`~~ | ~~"Living document" link that updates in place ★~~ | ~~High~~ | ~~High~~ |
+| ~~`feature/persistence`~~ | ~~Save and reload charts across sessions ★~~ | ~~High~~ | ~~High~~ |
+| ~~`feature/piece-specific-roles`~~ | ~~Piece-specific role assignment (cross-part roles) ★~~ | ~~High~~ | ~~Med~~ |
 
 ---
 
@@ -26,11 +26,11 @@ Effort and impact are rated Low / Med / High.
 
 | Branch | Idea | Effort | Impact |
 |--------|------|--------|--------|
-| `feature/save-load` | Save chart to a file and reload it later (JSON export/import) | Low | High |
+| ~~`feature/save-load`~~ | ~~Save chart to a file and reload it later (JSON export/import)~~ | ~~Low~~ | ~~High~~ |
 | `fix/layout-polish` | View full roster with scrolling on smaller windows | Low | Med |
 | `fix/export` | Save full image snapshot from smaller windows (html2canvas clips on small viewports) | Low | Med |
-| `fix/layout-polish` | Centeredness shifts when scrollbar appears/disappears | Low | Med |
-| `fix/layout-polish` | Conductor label not centered (row label throws it off) | Low | Med |
+| ~~`fix/layout-polish`~~ | ~~Centeredness shifts when scrollbar appears/disappears~~ | ~~Low~~ | ~~Med~~ |
+| ~~`fix/layout-polish`~~ | ~~Conductor label not centered (row label throws it off)~~ | ~~Low~~ | ~~Med~~ |
 | `feature/branding` | Add favicon | Low | Low |
 | `feature/branding` | Add logo | Low | Med |
 | `fix/layout-polish` | "Enter your roster" input styling matches other text boxes | Low | Low |
@@ -57,6 +57,21 @@ Effort and impact are rated Low / Med / High.
 
 | Feature | Notes |
 |---------|-------|
+| .xlsx input | Upload real Excel rosters in addition to CSV |
+| Undo/redo | Ctrl+Z / Ctrl+Y on the edit page; ↩ ↪ buttons |
+| Shareable link | "Share link" button generates a public URL for the chart |
+| Living document | Updating and re-sharing the same URL updates what viewers see |
+| Chart persistence | Charts saved by ID in SQLite, reload across sessions via URL |
+| Piece-specific arrangement | "Piece / Title" field on edit page; voice parts changeable per singer per chart |
+| Single-wide section warning | Banner in edit page when any part occupies only 1 seat wide |
+| 2D grid voice part arrangement | Drag parts into row groups (back/front) on configure page |
+| Mixed/shuffle mode | No same-voice-part neighbors using greedy max-heap interleaving |
+| JSON save/load (.choralchart) | Save and restore full chart state via file download/upload |
+| Height warning | Orange highlight when front-row singer is taller than the row behind |
+| Singer withdrawal | Remove button in modal compacts remaining seats |
+| Scrollbar-gutter stable | Prevents layout shift when scrollbar appears |
+| Conductor centering | Conductor label properly centered under the choir |
+| pytest test suite | 71 tests covering algorithm and Flask routes |
 | Hosting | Live at https://choralchart.onrender.com (Render, free tier) |
 | Navbar | Sticky ChoralChart navbar on every page |
 | Footer | Shared footer with copyright and GitHub link |

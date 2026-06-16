@@ -6,17 +6,68 @@
     <title>Configure — ChoralChart</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
-        .part-order-list {
+        /* Part grid (2D arrangement) */
+        .part-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .grid-group {
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.75rem;
+            background: #f9fafb;
+        }
+        .grid-group.drag-target {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .grid-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        .grid-group-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .btn-remove-group {
+            background: none;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 0.1rem 0.4rem;
+            min-width: unset;
+            line-height: 1.4;
+        }
+        .btn-remove-group:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #dc2626;
+        }
+        .grid-group-parts {
             display: flex;
             flex-direction: row;
             gap: 0.5rem;
             flex-wrap: wrap;
+            min-height: 44px;
+        }
+        .grid-group-parts.empty-drop {
+            border: 2px dashed #d1d5db;
+            border-radius: 6px;
+            padding: 0.5rem;
         }
         .part-item {
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.75rem 1rem;
+            padding: 0.5rem 0.875rem;
             background: #dbeafe;
             border: 2px solid #93c5fd;
             border-radius: 8px;
@@ -28,12 +79,12 @@
             background: #bfdbfe;
         }
         .part-item.dragging {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: grabbing;
         }
-        .part-item.drag-over {
-            border-color: #2563eb;
-            background: #eff6ff;
+        .part-item.drag-over-item {
+            outline: 2px dashed #2563eb;
+            outline-offset: 2px;
         }
         .drag-handle {
             color: #6b7280;
@@ -42,6 +93,76 @@
         .part-name {
             font-weight: 500;
             color: #1e40af;
+        }
+        .btn-add-group {
+            align-self: flex-start;
+            background: none;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            min-width: unset;
+            transition: all 0.15s;
+        }
+        .btn-add-group:hover {
+            border-color: #2563eb;
+            color: #2563eb;
+            background: #eff6ff;
+        }
+        .grid-depth-labels {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-top: 0.5rem;
+        }
+        .grid-hint {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-bottom: 0.75rem;
+        }
+        .mode-picker {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+        .mode-option {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            cursor: pointer;
+            background: #f9fafb;
+            transition: all 0.15s;
+        }
+        .mode-option input[type="radio"] {
+            display: none;
+        }
+        .mode-option.active {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+        .mode-option:hover:not(.active) {
+            border-color: #93c5fd;
+            background: #f0f9ff;
+        }
+        .mode-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #1e40af;
+        }
+        .mode-option:not(.active) .mode-title {
+            color: #374151;
+        }
+        .mode-desc {
+            font-size: 0.78rem;
+            color: #6b7280;
         }
     </style>
 </head>
@@ -63,22 +184,51 @@
 
         <form action="{{ url_for('edit') }}" method="post" class="config-form">
             <input type="hidden" name="singers_data" value="{{ singers_data }}">
-            <input type="hidden" name="layout" value="side-by-side">
             <input type="hidden" name="staggered" value="true">
+            <input type="hidden" id="part_grid" name="part_grid" value="{{ parts | join(',') }}">
+            <input type="hidden" id="part_order" name="part_order" value="{{ parts | join(',') }}">
+            <input type="hidden" name="mixed" id="mixed-hidden" value="false">
 
             <div class="form-section">
-                <h2>Voice Part Order</h2>
-                <p>Drag to reorder parts from left to right.</p>
+                <h2>Voice Part Arrangement</h2>
 
-                <div class="part-order-list" id="part-order-list">
-                    {% for part in parts %}
-                    <div class="part-item" draggable="true" data-part="{{ part }}">
-                        <span class="drag-handle">&#9776;</span>
-                        <span class="part-name">{{ part }}</span>
-                    </div>
-                    {% endfor %}
+                <div class="mode-picker">
+                    <label class="mode-option active" id="mode-group-label">
+                        <input type="radio" name="arrangement_mode" value="group" checked>
+                        <span class="mode-title">Group by section</span>
+                        <span class="mode-desc">Arrange parts left/right and stack rows front-to-back</span>
+                    </label>
+                    <label class="mode-option" id="mode-mixed-label">
+                        <input type="radio" name="arrangement_mode" value="mixed">
+                        <span class="mode-title">Mix voices</span>
+                        <span class="mode-desc">Interleave parts so no two neighbors share a voice</span>
+                    </label>
                 </div>
-                <input type="hidden" id="part_order" name="part_order" value="{{ parts | join(', ') }}">
+
+                <div id="grid-ui">
+                    <p class="grid-hint" style="margin-top:0.75rem;">Drag parts left/right to set column order. Add a row group to stack parts front-to-back — top groups stand in back, bottom groups in front.</p>
+
+                    <div class="part-grid" id="part-grid">
+                        <div class="grid-group" data-group-idx="0">
+                            <div class="grid-group-header">
+                                <span class="grid-group-label">Back rows</span>
+                            </div>
+                            <div class="grid-group-parts">
+                                {% for part in parts %}
+                                <div class="part-item" draggable="true" data-part="{{ part }}">
+                                    <span class="drag-handle">&#9776;</span>
+                                    <span class="part-name">{{ part }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add-group" onclick="addGroup()">+ Add front row group</button>
+                </div>
+
+                <div id="mixed-ui" style="display:none;">
+                    <p class="grid-hint" style="margin-top:0.75rem;">Singers will be scattered across all rows so that no two adjacent seats share a voice part. Column proportions are set automatically.</p>
+                </div>
             </div>
 
             <div class="form-section">
@@ -116,54 +266,152 @@
     </div>
 
     <script>
-        const list = document.getElementById('part-order-list');
-        const hiddenInput = document.getElementById('part_order');
+        const partGridEl = document.getElementById('part-grid');
+        const hiddenGrid = document.getElementById('part_grid');
+        const hiddenOrder = document.getElementById('part_order');
         let draggedItem = null;
 
-        function updateHiddenInput() {
-            const parts = Array.from(list.querySelectorAll('.part-item'))
-                .map(item => item.dataset.part);
-            hiddenInput.value = parts.join(', ');
+        function updateHiddenGrid() {
+            const rows = Array.from(partGridEl.querySelectorAll('.grid-group')).map(group =>
+                Array.from(group.querySelectorAll('.part-item'))
+                    .map(item => item.dataset.part)
+                    .join(',')
+            ).filter(row => row.length > 0);
+            hiddenGrid.value = rows.join(';');
+            // Keep flat order in sync for mixed-mode fallback
+            hiddenOrder.value = rows.map(r => r.split(',')).flat().join(',');
         }
 
-        list.querySelectorAll('.part-item').forEach(item => {
+        function refreshGroupLabels() {
+            const groups = Array.from(partGridEl.querySelectorAll('.grid-group'));
+            const total = groups.length;
+            groups.forEach((group, idx) => {
+                const header = group.querySelector('.grid-group-header');
+                const label = group.querySelector('.grid-group-label');
+                let removeBtn = group.querySelector('.btn-remove-group');
+
+                if (total === 1) {
+                    label.textContent = 'All rows';
+                    if (removeBtn) removeBtn.remove();
+                } else {
+                    if (!removeBtn) {
+                        removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn-remove-group';
+                        removeBtn.textContent = 'Remove';
+                        removeBtn.addEventListener('click', () => removeGroup(removeBtn));
+                        header.appendChild(removeBtn);
+                    }
+                    if (idx === 0) label.textContent = 'Back rows';
+                    else if (idx === total - 1) label.textContent = 'Front rows';
+                    else label.textContent = `Middle rows`;
+                }
+            });
+        }
+
+        function bindPartItem(item) {
             item.addEventListener('dragstart', (e) => {
                 draggedItem = item;
                 item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
             });
-
-            item.addEventListener('dragend', (e) => {
+            item.addEventListener('dragend', () => {
                 item.classList.remove('dragging');
-                list.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                partGridEl.querySelectorAll('.drag-over-item, .drag-target')
+                    .forEach(el => el.classList.remove('drag-over-item', 'drag-target'));
                 draggedItem = null;
+                updateHiddenGrid();
             });
-
             item.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                if (draggedItem && draggedItem !== item) {
-                    item.classList.add('drag-over');
-                }
+                if (draggedItem && draggedItem !== item) item.classList.add('drag-over-item');
             });
-
-            item.addEventListener('dragleave', (e) => {
-                item.classList.remove('drag-over');
-            });
-
+            item.addEventListener('dragleave', () => item.classList.remove('drag-over-item'));
             item.addEventListener('drop', (e) => {
                 e.preventDefault();
-                item.classList.remove('drag-over');
-                if (draggedItem && draggedItem !== item) {
-                    const allItems = Array.from(list.querySelectorAll('.part-item'));
-                    const draggedIdx = allItems.indexOf(draggedItem);
-                    const targetIdx = allItems.indexOf(item);
+                e.stopPropagation(); // don't bubble to group drop zone
+                item.classList.remove('drag-over-item');
+                if (!draggedItem || draggedItem === item) return;
 
-                    if (draggedIdx < targetIdx) {
-                        item.parentNode.insertBefore(draggedItem, item.nextSibling);
-                    } else {
-                        item.parentNode.insertBefore(draggedItem, item);
-                    }
-                    updateHiddenInput();
+                const siblings = Array.from(item.parentNode.querySelectorAll('.part-item'));
+                const draggedIdx = siblings.indexOf(draggedItem);
+                const targetIdx = siblings.indexOf(item);
+                if (draggedIdx < targetIdx) {
+                    item.parentNode.insertBefore(draggedItem, item.nextSibling);
+                } else {
+                    item.parentNode.insertBefore(draggedItem, item);
                 }
+                updateHiddenGrid();
+            });
+        }
+
+        function bindGroupDropZone(group) {
+            const partsEl = group.querySelector('.grid-group-parts');
+            partsEl.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                if (draggedItem && draggedItem.parentNode !== partsEl) {
+                    group.classList.add('drag-target');
+                }
+            });
+            partsEl.addEventListener('dragleave', (e) => {
+                if (!partsEl.contains(e.relatedTarget)) group.classList.remove('drag-target');
+            });
+            partsEl.addEventListener('drop', (e) => {
+                e.preventDefault();
+                group.classList.remove('drag-target');
+                if (draggedItem && draggedItem.parentNode !== partsEl) {
+                    partsEl.appendChild(draggedItem);
+                    updateHiddenGrid();
+                }
+            });
+        }
+
+        function addGroup() {
+            const group = document.createElement('div');
+            group.className = 'grid-group';
+            group.innerHTML = `
+                <div class="grid-group-header">
+                    <span class="grid-group-label"></span>
+                </div>
+                <div class="grid-group-parts"></div>
+            `;
+            partGridEl.appendChild(group);
+            bindGroupDropZone(group);
+            refreshGroupLabels();
+            updateHiddenGrid();
+        }
+
+        function removeGroup(btn) {
+            const group = btn.closest('.grid-group');
+            const allGroups = Array.from(partGridEl.querySelectorAll('.grid-group'));
+            const idx = allGroups.indexOf(group);
+            // Move orphaned parts to the nearest remaining group
+            const dest = allGroups[idx > 0 ? idx - 1 : 1];
+            const destParts = dest.querySelector('.grid-group-parts');
+            group.querySelectorAll('.part-item').forEach(item => destParts.appendChild(item));
+            group.remove();
+            refreshGroupLabels();
+            updateHiddenGrid();
+        }
+
+        // Initialize
+        partGridEl.querySelectorAll('.grid-group').forEach(g => bindGroupDropZone(g));
+        partGridEl.querySelectorAll('.part-item').forEach(item => bindPartItem(item));
+        refreshGroupLabels();
+        updateHiddenGrid();
+
+        // Mode picker: Group by section ↔ Mix voices
+        document.querySelectorAll('input[name="arrangement_mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const isMixed = this.value === 'mixed';
+                document.getElementById('grid-ui').style.display = isMixed ? 'none' : '';
+                document.getElementById('mixed-ui').style.display = isMixed ? '' : 'none';
+                document.getElementById('mixed-hidden').value = isMixed ? 'true' : 'false';
+                document.getElementById('mode-group-label').classList.toggle('active', !isMixed);
+                document.getElementById('mode-mixed-label').classList.toggle('active', isMixed);
+                // Clear part_grid when mixing so backend uses flat part_order
+                if (isMixed) document.getElementById('part_grid').value = '';
+                else updateHiddenGrid();
             });
         });
     </script>

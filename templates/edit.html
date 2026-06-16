@@ -55,6 +55,34 @@
             margin: 0;
             color: #856404;
         }
+        .single-wide-warning {
+            background: #fff0e6;
+            border: 1px solid #fd7e14;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            color: #7d3c00;
+        }
+        .single-wide-warning p {
+            margin: 0;
+        }
+        /* Height warning: front singer taller than the one behind them */
+        .seat.height-warn {
+            box-shadow: inset 0 0 0 2px #f97316;
+        }
+
+        /* Remove singer button */
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        .btn-danger:hover { background-color: #b91c1c; }
         .chart-options {
             display: flex;
             gap: 2rem;
@@ -203,6 +231,15 @@
             <p><strong>Drag and drop</strong> singers to swap positions, <strong>click two seats</strong> to swap them, or <strong>double-click</strong> a singer to change their voice part.</p>
         </div>
 
+        {% if single_wide_parts %}
+        <div class="single-wide-warning">
+            <p><strong>Warning:</strong> {{ single_wide_parts | join(', ') }} {% if single_wide_parts | length == 1 %}is{% else %}are{% endif %} only one seat wide. Consider adding more singers to {% if single_wide_parts | length == 1 %}this section{% else %}these sections{% endif %}, or adjusting the number of rows.</p>
+        </div>
+        {% endif %}
+        <div class="single-wide-warning" id="height-warn-banner" style="display:none;">
+            <p><strong>Height warning:</strong> Some singers are taller than the person directly behind them. Their seats are highlighted in orange.</p>
+        </div>
+
         <!-- Voice part edit modal -->
         <div class="modal-overlay" id="edit-modal">
             <div class="modal">
@@ -221,6 +258,7 @@
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    <button type="button" class="btn-danger" onclick="removeSinger()">Remove</button>
                     <button type="button" class="btn btn-primary" onclick="savePart()">Save</button>
                 </div>
             </div>
@@ -239,6 +277,11 @@
                 <input type="checkbox" id="height-toggle" checked>
                 <span>Show heights</span>
             </label>
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-left:auto;">
+                <label for="chart-title" style="font-size:0.875rem; color:#6b7280; white-space:nowrap;">Piece / Title:</label>
+                <input type="text" id="chart-title" name="chart_title" placeholder="e.g. Bach Magnificat"
+                       style="padding:0.35rem 0.6rem; border:1px solid #d1d5db; border-radius:6px; font-size:0.875rem; width:200px;">
+            </div>
         </div>
 
         <div class="chart-panel">
@@ -272,7 +315,10 @@
                         </div>
                     {% endfor %}
                 </div>
-                <div class="conductor-label">Conductor</div>
+                <div class="conductor-row">
+                    <div class="conductor-spacer"></div>
+                    <div class="conductor-label">Conductor</div>
+                </div>
             </div>
 
             <div class="chart-footer">
@@ -290,15 +336,28 @@
         <input type="hidden" name="chart_data" id="chart_data" value="{{ chart_data }}">
         <input type="hidden" name="singers_data" value="{{ singers_data }}">
         <input type="hidden" name="part_order" value="{{ part_order | join(', ') }}">
+        <input type="hidden" name="part_grid" value="{{ part_grid_str }}">
         <input type="hidden" name="layout" value="{{ layout }}">
         <input type="hidden" name="num_singers" value="{{ num_singers }}">
         <input type="hidden" name="flipped" value="{{ 'true' if flipped else 'false' }}">
         <input type="hidden" name="staggered" value="{{ 'true' if staggered else 'false' }}">
-<input type="hidden" name="aisle_after" value="{{ aisle_after or '' }}">
+        <input type="hidden" name="mixed" value="{{ 'true' if mixed else 'false' }}">
+        <input type="hidden" name="aisle_after" value="{{ aisle_after or '' }}">
 
+        <input type="hidden" id="share_id" value="">
         <div class="actions">
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Start Over</a>
+            <button type="button" id="btn-undo" onclick="undo()" class="btn btn-secondary" disabled>&#8617; Undo</button>
+            <button type="button" id="btn-redo" onclick="redo()" class="btn btn-secondary" disabled>&#8618; Redo</button>
+            <button type="button" onclick="saveChart()" class="btn btn-secondary">Save chart</button>
+            <button type="button" id="btn-share" onclick="shareChart()" class="btn btn-secondary">Share link</button>
             <button type="button" onclick="exportImage()" class="btn btn-success">Save as Image</button>
+        </div>
+        <div id="share-banner" style="display:none; margin-top:0.75rem; padding:0.75rem 1rem; background:#eff6ff; border:1px solid #93c5fd; border-radius:8px; font-size:0.875rem; color:#1e40af; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+            <span>Shared link:</span>
+            <a id="share-url" href="#" target="_blank" style="word-break:break-all;"></a>
+            <button type="button" onclick="copyShareUrl()" class="btn btn-secondary" style="padding:0.25rem 0.75rem; min-width:unset; font-size:0.8rem;">Copy</button>
+            <button type="button" onclick="shareChart()" class="btn btn-secondary" style="padding:0.25rem 0.75rem; min-width:unset; font-size:0.8rem;">Update</button>
         </div>
     </div>
 
@@ -368,6 +427,51 @@
             }
         });
 
+        // --- Undo / Redo ---
+        const undoStack = [];
+        let undoIdx = -1;
+
+        function pushHistory() {
+            undoStack.splice(undoIdx + 1);
+            undoStack.push(document.getElementById('chart_data').value);
+            undoIdx = undoStack.length - 1;
+            updateUndoRedoButtons();
+        }
+
+        function updateUndoRedoButtons() {
+            document.getElementById('btn-undo').disabled = undoIdx <= 0;
+            document.getElementById('btn-redo').disabled = undoIdx >= undoStack.length - 1;
+        }
+
+        function applyChartState(encoded) {
+            const data = JSON.parse(atob(encoded));
+            document.querySelectorAll('.chart-row').forEach((rowEl, rowIdx) => {
+                const rowData = data[rowIdx];
+                if (!rowData) return;
+                rowEl.querySelectorAll('.seat').forEach((seatEl, posIdx) => {
+                    const seatData = rowData[posIdx];
+                    if (seatData !== undefined) updateSeatDisplay(seatEl, seatData.singer);
+                });
+            });
+            document.getElementById('chart_data').value = encoded;
+            updateStaggerOffsets();
+            checkHeightWarnings();
+        }
+
+        function undo() {
+            if (undoIdx <= 0) return;
+            undoIdx--;
+            applyChartState(undoStack[undoIdx]);
+            updateUndoRedoButtons();
+        }
+
+        function redo() {
+            if (undoIdx >= undoStack.length - 1) return;
+            undoIdx++;
+            applyChartState(undoStack[undoIdx]);
+            updateUndoRedoButtons();
+        }
+
         // Drag and drop functionality
         const partOrder = {{ part_order | tojson }};
         let selectedSeat = null;
@@ -418,7 +522,9 @@
             updateSeatDisplay(seat2, singer1);
 
             updateChartData();
+            pushHistory();
             updateStaggerOffsets();
+            checkHeightWarnings();
         }
 
         function updateChartData() {
@@ -537,6 +643,7 @@
                 singer.voice_part = newPart;
                 updateSeatDisplay(editingSeat, singer);
                 updateChartData();
+                pushHistory();
             }
 
             closeModal();
@@ -549,12 +656,151 @@
             }
         });
 
-        // Close modal on Escape key
+        // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closeModal();
+            } else if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+            } else if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) ||
+                       (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
+                e.preventDefault();
+                redo();
             }
         });
+
+        // --- Height warnings ---
+        // Warn when a singer in a front row is taller than the singer behind them
+        // at the same column position.
+        function checkHeightWarnings() {
+            document.querySelectorAll('.seat.height-warn').forEach(el => el.classList.remove('height-warn'));
+
+            const rows = Array.from(document.querySelectorAll('.chart-row'));
+            for (let i = 0; i < rows.length - 1; i++) {
+                const backRow = rows[i];
+                const frontRow = rows[i + 1];
+
+                const backHeights = {};
+                backRow.querySelectorAll('.seat:not(.empty)').forEach(seat => {
+                    const singer = JSON.parse(seat.dataset.singer);
+                    if (singer && singer.height !== null) {
+                        backHeights[seat.dataset.pos] = singer.height;
+                    }
+                });
+
+                frontRow.querySelectorAll('.seat:not(.empty)').forEach(seat => {
+                    const singer = JSON.parse(seat.dataset.singer);
+                    if (singer && singer.height !== null) {
+                        const backH = backHeights[seat.dataset.pos];
+                        if (backH !== undefined && singer.height > backH) {
+                            seat.classList.add('height-warn');
+                        }
+                    }
+                });
+            }
+
+            const anyWarn = document.querySelector('.seat.height-warn') !== null;
+            document.getElementById('height-warn-banner').style.display = anyWarn ? '' : 'none';
+        }
+
+        // --- Singer removal ---
+        function removeSinger() {
+            if (!editingSeat) return;
+            const singer = JSON.parse(editingSeat.dataset.singer);
+            if (!singer) return;
+
+            if (!confirm(`Remove ${singer.name} from the chart?`)) return;
+
+            closeModal();
+
+            const part = singer.voice_part;
+
+            // All seats currently holding a singer of this voice part
+            const partSeats = Array.from(document.querySelectorAll('.seat:not(.empty)'))
+                .filter(s => {
+                    const d = JSON.parse(s.dataset.singer);
+                    return d && d.voice_part === part;
+                })
+                .sort((a, b) => {
+                    const dr = parseInt(a.dataset.row) - parseInt(b.dataset.row);
+                    return dr !== 0 ? dr : parseInt(a.dataset.pos) - parseInt(b.dataset.pos);
+                });
+
+            // Remaining singers (excluding the removed one)
+            const remaining = partSeats
+                .map(s => JSON.parse(s.dataset.singer))
+                .filter(s => s.name !== singer.name);
+
+            // Clear all seats of this part then re-fill from the front of the list
+            partSeats.forEach(s => updateSeatDisplay(s, null));
+            remaining.forEach((s, i) => updateSeatDisplay(partSeats[i], s));
+
+            updateChartData();
+            pushHistory();
+            updateStaggerOffsets();
+            checkHeightWarnings();
+        }
+
+        // --- JSON save/load ---
+        function saveChart() {
+            const data = {
+                version: 1,
+                chart_data:   document.getElementById('chart_data').value,
+                part_order:   document.querySelector('input[name="part_order"]').value,
+                part_grid:    document.querySelector('input[name="part_grid"]').value,
+                layout:       document.querySelector('input[name="layout"]').value,
+                singers_data: document.querySelector('input[name="singers_data"]').value,
+                num_singers:  document.querySelector('input[name="num_singers"]').value,
+                staggered:    document.querySelector('input[name="staggered"]').value,
+                flipped:      document.querySelector('input[name="flipped"]').value,
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'seating-chart.choralchart';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // --- Share / living document ---
+        async function shareChart() {
+            const formData = new FormData();
+            formData.append('chart_data',   document.getElementById('chart_data').value);
+            formData.append('part_order',   document.querySelector('input[name="part_order"]').value);
+            formData.append('part_grid',    document.querySelector('input[name="part_grid"]').value);
+            formData.append('layout',       document.querySelector('input[name="layout"]').value);
+            formData.append('singers_data', document.querySelector('input[name="singers_data"]').value);
+            formData.append('num_singers',  document.querySelector('input[name="num_singers"]').value);
+            formData.append('staggered',    document.querySelector('input[name="staggered"]').value);
+            formData.append('flipped',      document.querySelector('input[name="flipped"]').value);
+            formData.append('mixed',        document.querySelector('input[name="mixed"]').value);
+            formData.append('chart_title', document.getElementById('chart-title').value);
+            const existingId = document.getElementById('share_id').value;
+            if (existingId) formData.append('share_id', existingId);
+
+            const resp = await fetch('{{ url_for("share") }}', { method: 'POST', body: formData });
+            const data = await resp.json();
+            document.getElementById('share_id').value = data.id;
+            document.getElementById('share-url').href = data.url;
+            document.getElementById('share-url').textContent = data.url;
+            const banner = document.getElementById('share-banner');
+            banner.style.display = 'flex';
+        }
+
+        function copyShareUrl() {
+            const url = document.getElementById('share-url').href;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = event.target;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 1500);
+            });
+        }
+
+        // Seed initial undo state and run height check on page load
+        pushHistory();
+        checkHeightWarnings();
 
         // Export chart as PNG image (full scrollable area, not just visible portion)
         function exportImage() {

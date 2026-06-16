@@ -44,7 +44,9 @@ def generate_seating_chart(
     seats_per_row: int,
     part_order: List[str],
     layout: str = "side-by-side",
-    row_sizes: Optional[List[int]] = None
+    row_sizes: Optional[List[int]] = None,
+    part_grid: Optional[List[List[str]]] = None,
+    mixed: bool = False,
 ) -> List[List[Seat]]:
     """
     Generate a seating chart for straight rows.
@@ -90,10 +92,15 @@ def generate_seating_chart(
             row.append(Seat(row=r, position=p, singer=None))
         chart.append(row)
 
-    if layout == "side-by-side":
+    if layout == "grid" and part_grid:
+        _place_grid(chart, groups, part_grid, rows, seats_per_row)
+    elif layout == "side-by-side":
         _place_side_by_side_variable(chart, groups, part_order, row_sizes) if row_sizes else _place_side_by_side(chart, groups, part_order, rows, seats_per_row)
     else:  # stacked
         _place_stacked(chart, groups, part_order, rows, seats_per_row)
+
+    if mixed:
+        _mix_chart(chart)
 
     return chart
 
@@ -219,6 +226,140 @@ def _place_side_by_side_variable(
             current_pos += section_width
 
 
+def _mix_chart(chart: List[List[Seat]]) -> None:
+    """
+    Rearrange singers so no two neighbors share a voice part — horizontally
+    (adjacent seats in the same row) or vertically (same column in adjacent rows).
+
+    Greedy left-to-right placement: pick the most-available part that doesn't
+    conflict with the left neighbor or the seat directly above.  When both
+    constraints can't be satisfied simultaneously the vertical one is relaxed,
+    then the horizontal one, so dominant parts are pushed toward row edges.
+    Height-based back-to-front ordering is preserved within each part.
+    """
+    from collections import defaultdict
+
+    prev_row_parts: dict[int, str] = {}
+
+    for row in chart:
+        filled = [(s.position, s.singer) for s in row if s.singer]
+        if len(filled) <= 1:
+            prev_row_parts = {pos: singer.voice_part for pos, singer in filled}
+            continue
+
+        positions = [pos for pos, _ in sorted(filled)]
+
+        part_groups: dict[str, list] = defaultdict(list)
+        for _, singer in filled:
+            part_groups[singer.voice_part].append(singer)
+
+        # Clear current occupants
+        for pos, _ in filled:
+            row[pos].singer = None
+
+        pool: dict[str, list] = {part: singers[:] for part, singers in part_groups.items()}
+
+        new_parts: list[str] = []
+        for pos in positions:
+            forbidden_left = new_parts[-1] if new_parts else None
+            forbidden_above = prev_row_parts.get(pos)
+
+            # Candidates sorted by count descending
+            candidates = sorted(
+                [(part, ss) for part, ss in pool.items() if ss],
+                key=lambda x: -len(x[1])
+            )
+
+            chosen = None
+            # Prefer satisfying both constraints
+            for part, _ in candidates:
+                if part != forbidden_left and part != forbidden_above:
+                    chosen = part
+                    break
+            # Relax vertical
+            if chosen is None:
+                for part, _ in candidates:
+                    if part != forbidden_left:
+                        chosen = part
+                        break
+            # Relax both (dominant-part fallback)
+            if chosen is None and candidates:
+                chosen = candidates[0][0]
+
+            singer = pool[chosen].pop(0)
+            new_parts.append(chosen)
+            row[pos].singer = singer
+
+        prev_row_parts = dict(zip(positions, new_parts))
+
+
+def _place_grid(
+    chart: List[List[Seat]],
+    groups: dict,
+    part_grid: List[List[str]],
+    rows: int,
+    seats_per_row: int
+) -> None:
+    """
+    Place voice parts in a 2D grid layout.
+
+    part_grid is ordered back-to-front (index 0 = back rows).
+    Parts within each grid row are placed side-by-side.
+    Row bands are sized proportionally to their singer counts.
+
+    Example: [['Alto', 'Bass'], ['Soprano', 'Tenor']]
+      → Alto and Bass share the back rows, Soprano and Tenor the front rows.
+    """
+    num_groups = len(part_grid)
+    if num_groups == 0:
+        return
+
+    group_counts = [
+        sum(len(groups.get(p, [])) for p in group)
+        for group in part_grid
+    ]
+    total_singers = sum(group_counts)
+    if total_singers == 0:
+        return
+
+    # Allocate chart rows proportionally; every group gets at least 1 row.
+    row_allocs = []
+    remaining = rows
+    for i, count in enumerate(group_counts):
+        if i == num_groups - 1:
+            alloc = remaining
+        else:
+            proportion = count / total_singers
+            alloc = max(1, round(rows * proportion))
+            alloc = min(alloc, remaining - (num_groups - i - 1))
+        row_allocs.append(alloc)
+        remaining -= alloc
+
+    current_row = 0
+    for group_idx, group_parts in enumerate(part_grid):
+        group_rows = row_allocs[group_idx]
+        end_row = current_row + group_rows
+
+        active_parts = [p for p in group_parts if groups.get(p)]
+        if active_parts:
+            part_widths = [
+                math.ceil(len(groups[p]) / group_rows)
+                for p in active_parts
+            ]
+            total_width = sum(part_widths)
+            col_offset = (seats_per_row - total_width) // 2
+
+            pos = col_offset
+            for part, width in zip(active_parts, part_widths):
+                if width > 0:
+                    _place_section(chart, groups[part],
+                                   start_row=current_row, end_row=end_row,
+                                   start_pos=pos, end_pos=pos + width)
+                    pos += width
+
+        current_row = end_row
+
+
 def _place_stacked(
     chart: List[List[Seat]],
     groups: dict,
@@ -312,6 +453,53 @@ def calculate_min_width(singers: List[Singer], part_order: List[str], rows: int)
         total_width += width
 
     return total_width
+
+
+def calculate_min_width_grid(
+    singers: List[Singer],
+    part_grid: List[List[str]],
+    rows: int
+) -> int:
+    """
+    Calculate the minimum seats_per_row needed for a grid layout.
+
+    Uses the same row-allocation logic as _place_grid so the result is exact.
+    """
+    part_counts: dict[str, int] = {}
+    for singer in singers:
+        part_counts[singer.voice_part] = part_counts.get(singer.voice_part, 0) + 1
+
+    total_singers = sum(part_counts.values())
+    num_groups = len(part_grid)
+    if total_singers == 0 or num_groups == 0:
+        return 1
+
+    group_singer_counts = [
+        sum(part_counts.get(p, 0) for p in group) for group in part_grid
+    ]
+
+    # Mirror the row-allocation from _place_grid
+    row_allocs: list[int] = []
+    remaining = rows
+    for i, count in enumerate(group_singer_counts):
+        if i == num_groups - 1:
+            alloc = remaining
+        else:
+            proportion = count / total_singers
+            alloc = max(1, round(rows * proportion))
+            alloc = min(alloc, remaining - (num_groups - i - 1))
+        row_allocs.append(alloc)
+        remaining -= alloc
+
+    max_width = 0
+    for group, group_rows in zip(part_grid, row_allocs):
+        group_width = sum(
+            math.ceil(part_counts.get(p, 0) / group_rows)
+            for p in group if part_counts.get(p, 0) > 0
+        )
+        max_width = max(max_width, group_width)
+
+    return max_width
 
 
 def calculate_chart_dimensions(num_singers: int, num_parts: int, layout: str) -> tuple[int, int]:
