@@ -156,7 +156,8 @@ def show_configure_page(singers: list[Singer]):
     return render_template('configure.html',
                            parts=parts,
                            num_singers=len(singers),
-                           singers_data=singers_json)
+                           singers_data=singers_json,
+                           singers=singers)
 
 
 @app.route('/preview', methods=['POST'])

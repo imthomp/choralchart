@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Chart — ChoralChart</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
@@ -121,8 +122,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: max-content;
+            min-width: 100%;
+            margin: 0 auto;
         }
         .chart-row {
+            justify-content: flex-start;
+        }
+        .chart-container.staggered .chart-row {
             justify-content: center;
         }
         /* Conductor label as small square */
@@ -166,9 +173,10 @@
             color: #9ca3af;
             font-weight: 500;
         }
-        /* Height toggle */
+        /* Height toggle: fade via opacity */
         .hide-heights .singer-height {
-            display: none;
+            opacity: 0;
+            max-height: 0;
         }
 
         /* Edit modal */
@@ -277,6 +285,18 @@
                 <input type="checkbox" id="height-toggle" checked>
                 <span>Show heights</span>
             </label>
+            <label class="checkbox-option">
+                <input type="checkbox" id="empty-chairs-toggle">
+                <span>Show empty chairs</span>
+            </label>
+            <label class="checkbox-option" style="gap:0.4rem;">
+                <span style="font-size:0.875rem;">Seat #:</span>
+                <select id="seat-num-mode" style="font-size:0.8rem; border:1px solid #d1d5db; border-radius:6px; padding:0.2rem 0.4rem; cursor:pointer;">
+                    <option value="left">Left edge</option>
+                    <option value="right">Right edge</option>
+                    <option value="both">Both edges</option>
+                </select>
+            </label>
             <div style="display:flex; align-items:center; gap:0.5rem; margin-left:auto;">
                 <label for="chart-title" style="font-size:0.875rem; color:#6b7280; white-space:nowrap;">Piece / Title:</label>
                 <input type="text" id="chart-title" name="chart_title" placeholder="e.g. Bach Magnificat"
@@ -366,13 +386,16 @@
         document.getElementById('flip-toggle').addEventListener('change', function() {
             const wrapper = document.querySelector('.chart-wrapper');
             const hiddenFlipped = document.querySelector('input[name="flipped"]');
-            if (this.checked) {
-                wrapper.classList.add('flipped');
-                hiddenFlipped.value = 'true';
-            } else {
-                wrapper.classList.remove('flipped');
-                hiddenFlipped.value = 'false';
-            }
+            const goFlipped = this.checked;
+            wrapper.style.transition = 'transform 0.17s ease-in';
+            wrapper.style.transform = 'scaleY(0)';
+            setTimeout(() => {
+                if (goFlipped) { wrapper.classList.add('flipped'); hiddenFlipped.value = 'true'; }
+                else           { wrapper.classList.remove('flipped'); hiddenFlipped.value = 'false'; }
+                wrapper.style.transition = 'transform 0.17s ease-out';
+                wrapper.style.transform = 'scaleY(1)';
+                setTimeout(() => { wrapper.style.transition = ''; wrapper.style.transform = ''; }, 170);
+            }, 170);
         });
 
         // Calculate which rows need stagger offset based on singer count parity
@@ -426,6 +449,33 @@
                 container.classList.add('hide-heights');
             }
         });
+
+        // Empty chairs toggle
+        document.getElementById('empty-chairs-toggle').addEventListener('change', function() {
+            document.querySelector('.chart-container').classList.toggle('show-empty-chairs', this.checked);
+        });
+
+        // Seat number mode (left / right / both edges)
+        function updateSeatNumbers() {
+            const mode = document.getElementById('seat-num-mode').value;
+            document.querySelectorAll('.chart-row').forEach(row => {
+                const seats = Array.from(row.querySelectorAll('.seat:not(.empty)'));
+                const n = seats.length;
+                seats.forEach((seat, i) => {
+                    const fromLeft = i + 1;
+                    const fromRight = n - i;
+                    let label = '';
+                    if (mode === 'left') label = String(fromLeft);
+                    else if (mode === 'right') label = String(fromRight);
+                    else label = fromLeft <= fromRight
+                        ? String(fromLeft)
+                        : (fromLeft === fromRight ? String(fromLeft) : String(fromRight));
+                    const numEl = seat.querySelector('.seat-number');
+                    if (numEl) numEl.textContent = label;
+                });
+            });
+        }
+        document.getElementById('seat-num-mode').addEventListener('change', updateSeatNumbers);
 
         // --- Undo / Redo ---
         const undoStack = [];
@@ -520,6 +570,11 @@
 
             updateSeatDisplay(seat1, singer2);
             updateSeatDisplay(seat2, singer1);
+
+            [seat1, seat2].forEach(s => {
+                s.classList.add('swapping');
+                s.addEventListener('animationend', () => s.classList.remove('swapping'), { once: true });
+            });
 
             updateChartData();
             pushHistory();
@@ -814,11 +869,27 @@
                 useCORS: true,
                 width: fullW,
                 height: fullH,
+                windowWidth: fullW + 200,
+                scrollX: 0,
+                scrollY: 0,
                 onclone: (clonedDoc) => {
                     const p = clonedDoc.querySelector('.chart-panel');
                     p.style.overflow = 'visible';
                     p.style.width = fullW + 'px';
                     p.style.height = fullH + 'px';
+                    p.style.minWidth = 'unset';
+                    const wrapper = p.querySelector('.chart-wrapper');
+                    if (wrapper) {
+                        wrapper.style.width = 'max-content';
+                        wrapper.style.minWidth = 'unset';
+                        wrapper.style.margin = '0';
+                    }
+                    const container = p.querySelector('.chart-container');
+                    if (container) {
+                        container.style.overflow = 'visible';
+                        container.style.width = 'max-content';
+                        container.style.minWidth = 'unset';
+                    }
                 }
             }).then(canvas => {
                 const link = document.createElement('a');

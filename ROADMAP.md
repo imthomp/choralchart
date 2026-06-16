@@ -27,19 +27,19 @@ Effort and impact are rated Low / Med / High.
 | Branch | Idea | Effort | Impact |
 |--------|------|--------|--------|
 | ~~`feature/save-load`~~ | ~~Save chart to a file and reload it later (JSON export/import)~~ | ~~Low~~ | ~~High~~ |
-| `fix/layout-polish` | View full roster with scrolling on smaller windows | Low | Med |
-| `fix/export` | Save full image snapshot from smaller windows (html2canvas clips on small viewports) | Low | Med |
+| ~~`fix/layout-polish`~~ | ~~View full roster with scrolling on smaller windows~~ | ~~Low~~ | ~~Med~~ |
+| ~~`fix/export`~~ | ~~Save full image snapshot from smaller windows (html2canvas clips on small viewports)~~ | ~~Low~~ | ~~Med~~ |
 | ~~`fix/layout-polish`~~ | ~~Centeredness shifts when scrollbar appears/disappears~~ | ~~Low~~ | ~~Med~~ |
 | ~~`fix/layout-polish`~~ | ~~Conductor label not centered (row label throws it off)~~ | ~~Low~~ | ~~Med~~ |
-| `feature/branding` | Add favicon | Low | Low |
+| ~~`feature/branding`~~ | ~~Add favicon~~ | ~~Low~~ | ~~Low~~ |
 | `feature/branding` | Add logo | Low | Med |
-| `fix/layout-polish` | "Enter your roster" input styling matches other text boxes | Low | Low |
-| `feature/sample-rosters` | Ship sample CSVs (SATB, Men's, Women's, etc.) | Low | Med |
-| `fix/layout-polish` | Seat number toggle from either edge or both | Low | Low |
-| `feature/height-warning` | Warn when a tall singer is placed in front of a shorter one | Low | High |
-| `fix/stagger` | Stagger/grid switch (fix odd/even centering ghost-stagger) | Med | Med |
-| `fix/layout-polish` | Include empty chairs on edges option | Med | Low |
-| `feature/animations` | Animate flip, drag-and-drop, height toggle | Med | Low |
+| ~~`fix/layout-polish`~~ | ~~"Enter your roster" input styling matches other text boxes~~ | ~~Low~~ | ~~Low~~ |
+| ~~`feature/sample-rosters`~~ | ~~Ship sample CSVs (SATB, Men's, Women's, etc.)~~ | ~~Low~~ | ~~Med~~ |
+| ~~`fix/layout-polish`~~ | ~~Seat number toggle from either edge or both~~ | ~~Low~~ | ~~Low~~ |
+| ~~`feature/height-warning`~~ | ~~Warn when a tall singer is placed in front of a shorter one~~ | ~~Low~~ | ~~High~~ |
+| ~~`fix/stagger`~~ | ~~Stagger/grid switch (fix odd/even centering ghost-stagger)~~ | ~~Med~~ | ~~Med~~ |
+| ~~`fix/layout-polish`~~ | ~~Include empty chairs on edges option~~ | ~~Med~~ | ~~Low~~ |
+| ~~`feature/animations`~~ | ~~Animate flip, drag-and-drop, height toggle~~ | ~~Med~~ | ~~Low~~ |
 | `qa/cross-platform` | Test on Windows, macOS, iOS, Android browsers | Med | High |
 
 ---
@@ -57,6 +57,16 @@ Effort and impact are rated Low / Med / High.
 
 | Feature | Notes |
 |---------|-------|
+| Favicon | SVG grid icon matching app colors |
+| Sample rosters | SATB (40), Men's (20), Women's (20) CSVs downloadable from upload form |
+| Roster preview | Collapsible singer list on configure page to verify imports |
+| Seat number toggle | Left edge / right edge / both edges picker in edit page |
+| Ghost-stagger fix | Non-staggered rows now left-align within centered block; no centering drift |
+| Empty chairs option | "Show empty chairs" toggle reveals placeholder dashed seats at row edges |
+| Flip animation | Smooth scaleY flip when toggling chart direction |
+| Swap flash | Brief brightness flash when two seats swap positions |
+| Height fade | Height labels fade in/out instead of snapping |
+| html2canvas small-viewport fix | windowWidth hint forces full render width regardless of viewport |
 | .xlsx input | Upload real Excel rosters in addition to CSV |
 | Undo/redo | Ctrl+Z / Ctrl+Y on the edit page; ↩ ↪ buttons |
 | Shareable link | "Share link" button generates a public URL for the chart |

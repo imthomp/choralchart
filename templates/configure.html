@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Configure — ChoralChart</title>
+    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
         /* Part grid (2D arrangement) */
@@ -164,13 +165,36 @@
             font-size: 0.78rem;
             color: #6b7280;
         }
+        .roster-toggle-btn {
+            background: none;
+            border: none;
+            color: #2563eb;
+            font-size: 0.875rem;
+            cursor: pointer;
+            padding: 0;
+            min-width: unset;
+            font-weight: 500;
+        }
+        .roster-toggle-btn:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
     {% include 'navbar.html' %}
     <div class="container container-narrow">
         <h1>Configure Seating Chart</h1>
-        <p class="subtitle">{{ num_singers }} singers loaded</p>
+        <p class="subtitle">{{ num_singers }} singers loaded &mdash; <button type="button" class="roster-toggle-btn" onclick="toggleRoster(this)">View roster ▾</button></p>
+        <div id="roster-preview" style="display:none; max-height:240px; overflow-y:auto; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:0.5rem 0.75rem; margin-bottom:1rem; font-size:0.82rem;">
+            {% for part in parts %}
+            <div style="margin-bottom:0.5rem;">
+                <strong style="color:#374151;">{{ part }}</strong>
+                <ul style="margin:0.2rem 0 0 0; padding-left:1.2rem; color:#6b7280;">
+                    {% for s in singers if s.voice_part == part %}
+                    <li>{{ s.name }}{% if s.height_display %} <span style="color:#9ca3af;">· {{ s.height_display }}</span>{% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </div>
 
         {% with messages = get_flashed_messages() %}
             {% if messages %}
@@ -414,6 +438,13 @@
                 else updateHiddenGrid();
             });
         });
+
+        function toggleRoster(btn) {
+            const panel = document.getElementById('roster-preview');
+            const open = panel.style.display !== 'none';
+            panel.style.display = open ? 'none' : 'block';
+            btn.textContent = open ? 'View roster ▾' : 'Hide roster ▴';
+        }
     </script>
     {% include 'footer.html' %}
 </body>

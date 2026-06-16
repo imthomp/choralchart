@@ -503,6 +503,9 @@ button:hover, .button:hover {
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: max-content;
+    min-width: 100%;
+    margin: 0 auto;
 }
 
 .chart-wrapper.flipped {
@@ -563,7 +566,7 @@ button:hover, .button:hover {
     padding: 1.5rem;
     border-radius: 10px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    overflow-x: auto;
+    overflow: visible;
 }
 
 .chart-row {
@@ -571,7 +574,7 @@ button:hover, .button:hover {
     gap: 0.5rem;
     margin-bottom: 0.5rem;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     transition: transform 0.2s ease;
 }
 
@@ -606,6 +609,14 @@ button:hover, .button:hover {
     display: none;
 }
 
+.show-empty-chairs .seat.empty {
+    display: flex;
+    border-style: dashed;
+    border-color: #d1d5db;
+    background: #f9fafb;
+    opacity: 0.5;
+}
+
 .singer-name {
     font-weight: 600;
     font-size: 0.8rem;
@@ -628,8 +639,7 @@ button:hover, .button:hover {
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     padding: 1.5rem 2rem;
-    overflow: visible;
-    min-width: fit-content;
+    overflow-x: auto;
 }
 
 .chart-panel .chart-container {
@@ -637,6 +647,41 @@ button:hover, .button:hover {
     padding: 0;
     background: transparent;
     border-radius: 0;
+}
+
+.chart-container.staggered .chart-row {
+    justify-content: center;
+}
+
+/* Flip animation */
+@keyframes chart-flip {
+    0%   { transform: scaleY(1); }
+    45%  { transform: scaleY(0); }
+    55%  { transform: scaleY(0); }
+    100% { transform: scaleY(1); }
+}
+
+.chart-wrapper.flipping {
+    animation: chart-flip 0.35s ease-in-out;
+}
+
+/* Seat swap flash */
+@keyframes seat-swap-flash {
+    0%, 100% { filter: brightness(1); }
+    50%       { filter: brightness(1.4); }
+}
+
+.seat.swapping {
+    animation: seat-swap-flash 0.3s ease;
+}
+
+/* Height field: fade instead of display:none */
+.singer-height {
+    transition: opacity 0.2s ease, max-height 0.2s ease;
+    overflow: hidden;
+    max-height: 1.2em;
+    opacity: 1;
+    display: inline;
 }
 
 .chart-footer {
