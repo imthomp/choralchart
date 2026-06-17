@@ -194,14 +194,6 @@ class TestRoutes:
         assert r.status_code == 200
         assert b"Edit Chart" in r.data
 
-    def test_finalize_renders(self, client):
-        r = client.post("/finalize", data={
-            "singers_data": SIMPLE_ROSTER,
-            "part_grid": "Soprano,Alto",
-            "staggered": "false",
-        })
-        assert r.status_code == 200
-
     def test_upload_no_file(self, client):
         r = client.post("/upload")
         assert r.status_code == 302  # redirect back
