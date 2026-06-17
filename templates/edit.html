@@ -90,24 +90,127 @@
             margin-bottom: 1rem;
             flex-wrap: wrap;
         }
-        .section-chip {
+        /* Voice part arrangement panel */
+        .arrangement-panel {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.875rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .arrangement-header {
             display: flex;
             align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .arrangement-header h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #374151;
+            margin: 0;
+        }
+        .mode-picker {
+            display: flex;
             gap: 0.5rem;
-            padding: 0.5rem 0.875rem;
+            margin-bottom: 0.75rem;
+        }
+        .mode-option {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+            padding: 0.6rem 0.875rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            background: white;
+            transition: all 0.15s;
+        }
+        .mode-option input[type="radio"] { display: none; }
+        .mode-option.active { border-color: #2563eb; background: #eff6ff; }
+        .mode-option:hover:not(.active) { border-color: #93c5fd; background: #f0f9ff; }
+        .mode-title { font-weight: 600; font-size: 0.85rem; color: #1e40af; }
+        .mode-option:not(.active) .mode-title { color: #374151; }
+        .mode-desc { font-size: 0.75rem; color: #6b7280; }
+        .part-grid { display: flex; flex-direction: column; gap: 0.4rem; }
+        .grid-group {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 0.6rem 0.75rem;
+            background: white;
+        }
+        .grid-group.drag-target { border-color: #2563eb; background: #eff6ff; }
+        .grid-group-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.4rem;
+        }
+        .grid-group-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .btn-remove-group {
+            background: none;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            color: #9ca3af;
+            cursor: pointer;
+            font-size: 0.7rem;
+            padding: 0.1rem 0.4rem;
+            min-width: unset;
+            line-height: 1.4;
+        }
+        .btn-remove-group:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+        .grid-group-parts {
+            display: flex;
+            flex-direction: row;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            min-height: 40px;
+        }
+        .grid-group-parts.empty-drop {
+            border: 2px dashed #d1d5db;
+            border-radius: 6px;
+            padding: 0.4rem;
+        }
+        .part-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.4rem 0.75rem;
             background: #dbeafe;
             border: 2px solid #93c5fd;
-            border-radius: 8px;
+            border-radius: 7px;
             cursor: grab;
             user-select: none;
             transition: all 0.15s;
-            font-size: 0.875rem;
+            font-size: 0.85rem;
         }
-        .section-chip:hover { background: #bfdbfe; }
-        .section-chip.dragging { opacity: 0.4; cursor: grabbing; }
-        .section-chip.drag-over { outline: 2px dashed #2563eb; outline-offset: 2px; }
-        .section-chip .drag-handle { color: #6b7280; font-size: 0.9rem; }
-        .section-chip .chip-label { font-weight: 500; color: #1e40af; }
+        .part-item:hover { background: #bfdbfe; }
+        .part-item.dragging { opacity: 0.4; cursor: grabbing; }
+        .part-item.drag-over-item { outline: 2px dashed #2563eb; outline-offset: 2px; }
+        .part-item .drag-handle { color: #6b7280; font-size: 0.85rem; }
+        .part-item .part-name { font-weight: 500; color: #1e40af; }
+        .btn-add-group {
+            margin-top: 0.4rem;
+            background: none;
+            border: 2px dashed #d1d5db;
+            border-radius: 7px;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.875rem;
+            min-width: unset;
+            transition: all 0.15s;
+            display: block;
+        }
+        .btn-add-group:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+        .grid-hint { font-size: 0.78rem; color: #6b7280; margin-bottom: 0.5rem; }
         /* Stagger: half of (seat width + gap) = (120 + 8) / 2 = 64px */
         /* Transform only the seats wrapper, so the row label stays fixed */
         .chart-container.staggered .chart-row.stagger-offset .row-seats {
@@ -336,13 +439,33 @@
                        style="padding:0.35rem 0.6rem; border:1px solid #d1d5db; border-radius:6px; font-size:0.875rem; width:200px;">
             </div>
         </div>
-        {% if not mixed %}
-        <div class="chart-options" id="section-order-bar" style="gap:0.5rem;">
-            <span style="font-size:0.8rem; color:#6b7280; white-space:nowrap;">Sections:</span>
-            <div id="section-chips" style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;"></div>
-            <button type="button" id="apply-section-order" onclick="applySectionOrder()" class="btn btn-secondary" style="min-width:unset; font-size:0.8rem; padding:0.3rem 0.75rem; display:none;">Apply order <span style="font-size:0.7rem; color:#9ca3af;">(resets edits)</span></button>
+        <div class="arrangement-panel">
+            <div class="arrangement-header">
+                <h3>Voice Part Arrangement</h3>
+                <span style="font-size:0.75rem; color:#9ca3af;">Applying will reset manual seat edits</span>
+                <button type="button" onclick="applyArrangement()" class="btn btn-secondary" style="min-width:unset; font-size:0.8rem; padding:0.3rem 0.75rem; margin-left:auto;">Apply</button>
+            </div>
+            <div class="mode-picker">
+                <label class="mode-option {% if not mixed %}active{% endif %}" id="arr-mode-group-label">
+                    <input type="radio" name="arr_mode" value="group" {% if not mixed %}checked{% endif %}>
+                    <span class="mode-title">Group by section</span>
+                    <span class="mode-desc">Arrange parts left/right and front-to-back</span>
+                </label>
+                <label class="mode-option {% if mixed %}active{% endif %}" id="arr-mode-mixed-label">
+                    <input type="radio" name="arr_mode" value="mixed" {% if mixed %}checked{% endif %}>
+                    <span class="mode-title">Mix voices</span>
+                    <span class="mode-desc">No two adjacent seats share a voice part</span>
+                </label>
+            </div>
+            <div id="arr-grid-ui"{% if mixed %} style="display:none;"{% endif %}>
+                <p class="grid-hint">Drag parts left/right to set column order. Add a row group to stack parts front-to-back — top group stands in back, bottom group in front.</p>
+                <div class="part-grid" id="arr-part-grid"></div>
+                <button type="button" class="btn-add-group" onclick="arrAddGroup()">+ Add front row group</button>
+            </div>
+            <div id="arr-mixed-ui"{% if not mixed %} style="display:none;"{% endif %}>
+                <p class="grid-hint">Singers will be scattered so no two adjacent seats share a voice part. Column proportions are set automatically.</p>
+            </div>
         </div>
-        {% endif %}
         {% endif %}
 
         <div class="chart-panel">
@@ -1007,65 +1130,174 @@
             checkHeightWarnings();
         }
 
-        // --- Section reordering ---
-        {% if not mixed %}
-        let sectionOrder = [...partOrder];
-        const originalSectionOrder = [...partOrder];
-        let dragSrcIdx = null;
+        // --- Voice part arrangement panel ---
+        const arrGrid = document.getElementById('arr-part-grid');
+        let arrDraggedItem = null;
 
-        function buildSectionChips() {
-            const container = document.getElementById('section-chips');
-            if (!container) return;
-            container.innerHTML = '';
-            sectionOrder.forEach((part, i) => {
-                const chip = document.createElement('div');
-                chip.className = 'section-chip';
-                chip.draggable = true;
-                chip.dataset.idx = i;
-                chip.innerHTML = `<span class="drag-handle">⠿</span><span class="chip-label">${part}</span>`;
-
-                chip.addEventListener('dragstart', e => {
-                    dragSrcIdx = i;
-                    chip.classList.add('dragging');
-                    e.dataTransfer.effectAllowed = 'move';
-                });
-                chip.addEventListener('dragend', () => {
-                    chip.classList.remove('dragging');
-                    container.querySelectorAll('.section-chip').forEach(c => c.classList.remove('drag-over'));
-                });
-                chip.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    container.querySelectorAll('.section-chip').forEach(c => c.classList.remove('drag-over'));
-                    chip.classList.add('drag-over');
-                });
-                chip.addEventListener('drop', e => {
-                    e.preventDefault();
-                    if (dragSrcIdx !== null && dragSrcIdx !== i) {
-                        const moved = sectionOrder.splice(dragSrcIdx, 1)[0];
-                        sectionOrder.splice(i, 0, moved);
-                        buildSectionChips();
-                    }
-                });
-                container.appendChild(chip);
-            });
-            const changed = sectionOrder.some((p, i) => p !== originalSectionOrder[i]);
-            document.getElementById('apply-section-order').style.display = changed ? '' : 'none';
+        function arrMakeItem(part) {
+            const item = document.createElement('div');
+            item.className = 'part-item';
+            item.draggable = true;
+            item.dataset.part = part;
+            item.innerHTML = `<span class="drag-handle">&#9776;</span><span class="part-name">${part}</span>`;
+            arrBindItem(item);
+            return item;
         }
 
-        function applySectionOrder() {
+        function arrBindItem(item) {
+            item.addEventListener('dragstart', e => {
+                arrDraggedItem = item;
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                arrGrid.querySelectorAll('.drag-over-item, .drag-target')
+                    .forEach(el => el.classList.remove('drag-over-item', 'drag-target'));
+                arrDraggedItem = null;
+            });
+            item.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (arrDraggedItem && arrDraggedItem !== item) item.classList.add('drag-over-item');
+            });
+            item.addEventListener('dragleave', () => item.classList.remove('drag-over-item'));
+            item.addEventListener('drop', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                item.classList.remove('drag-over-item');
+                if (!arrDraggedItem || arrDraggedItem === item) return;
+                const siblings = Array.from(item.parentNode.querySelectorAll('.part-item'));
+                const di = siblings.indexOf(arrDraggedItem);
+                const ti = siblings.indexOf(item);
+                item.parentNode.insertBefore(arrDraggedItem, di < ti ? item.nextSibling : item);
+            });
+        }
+
+        function arrBindGroup(group) {
+            const partsEl = group.querySelector('.grid-group-parts');
+            partsEl.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (arrDraggedItem && arrDraggedItem.parentNode !== partsEl)
+                    group.classList.add('drag-target');
+            });
+            partsEl.addEventListener('dragleave', e => {
+                if (!partsEl.contains(e.relatedTarget)) group.classList.remove('drag-target');
+            });
+            partsEl.addEventListener('drop', e => {
+                e.preventDefault();
+                group.classList.remove('drag-target');
+                if (arrDraggedItem && arrDraggedItem.parentNode !== partsEl)
+                    partsEl.appendChild(arrDraggedItem);
+            });
+        }
+
+        function arrRefreshLabels() {
+            const groups = Array.from(arrGrid.querySelectorAll('.grid-group'));
+            groups.forEach((group, idx) => {
+                const header = group.querySelector('.grid-group-header');
+                const label = group.querySelector('.grid-group-label');
+                let removeBtn = group.querySelector('.btn-remove-group');
+                if (groups.length === 1) {
+                    label.textContent = 'All rows';
+                    if (removeBtn) removeBtn.remove();
+                } else {
+                    if (!removeBtn) {
+                        removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn-remove-group';
+                        removeBtn.textContent = 'Remove';
+                        removeBtn.addEventListener('click', () => arrRemoveGroup(removeBtn));
+                        header.appendChild(removeBtn);
+                    }
+                    label.textContent = idx === 0 ? 'Back rows' : idx === groups.length - 1 ? 'Front rows' : 'Middle rows';
+                }
+            });
+        }
+
+        function arrAddGroup() {
+            const group = document.createElement('div');
+            group.className = 'grid-group';
+            group.innerHTML = `<div class="grid-group-header"><span class="grid-group-label"></span></div><div class="grid-group-parts"></div>`;
+            arrGrid.appendChild(group);
+            arrBindGroup(group);
+            arrRefreshLabels();
+        }
+
+        function arrRemoveGroup(btn) {
+            const group = btn.closest('.grid-group');
+            const allGroups = Array.from(arrGrid.querySelectorAll('.grid-group'));
+            const idx = allGroups.indexOf(group);
+            const dest = allGroups[idx > 0 ? idx - 1 : 1];
+            group.querySelectorAll('.part-item').forEach(item => dest.querySelector('.grid-group-parts').appendChild(item));
+            group.remove();
+            arrRefreshLabels();
+        }
+
+        // Initialize grid from current part_grid and part_order
+        (function initArrGrid() {
+            const gridStr = {{ part_grid_str | tojson }};
+            const order = {{ part_order | tojson }};
+            const groups = gridStr ? gridStr.split(';').map(g => g.split(',').filter(Boolean)) : [order];
+            groups.forEach((groupParts, gi) => {
+                let group;
+                if (gi === 0) {
+                    group = document.createElement('div');
+                    group.className = 'grid-group';
+                    group.innerHTML = `<div class="grid-group-header"><span class="grid-group-label"></span></div><div class="grid-group-parts"></div>`;
+                    arrGrid.appendChild(group);
+                } else {
+                    const g = document.createElement('div');
+                    g.className = 'grid-group';
+                    g.innerHTML = `<div class="grid-group-header"><span class="grid-group-label"></span></div><div class="grid-group-parts"></div>`;
+                    arrGrid.appendChild(g);
+                    group = g;
+                }
+                const partsEl = group.querySelector('.grid-group-parts');
+                groupParts.forEach(part => partsEl.appendChild(arrMakeItem(part)));
+                arrBindGroup(group);
+            });
+            arrRefreshLabels();
+        })();
+
+        // Mode picker
+        document.querySelectorAll('input[name="arr_mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const isMixed = this.value === 'mixed';
+                document.getElementById('arr-grid-ui').style.display = isMixed ? 'none' : '';
+                document.getElementById('arr-mixed-ui').style.display = isMixed ? '' : 'none';
+                document.getElementById('arr-mode-group-label').classList.toggle('active', !isMixed);
+                document.getElementById('arr-mode-mixed-label').classList.toggle('active', isMixed);
+            });
+        });
+
+        function applyArrangement() {
+            const isMixed = document.querySelector('input[name="arr_mode"]:checked').value === 'mixed';
+            let newPartGrid = '';
+            let newPartOrder = '';
+            let newLayout = document.querySelector('input[name="layout"]').value;
+            if (!isMixed) {
+                const groupRows = Array.from(arrGrid.querySelectorAll('.grid-group')).map(g =>
+                    Array.from(g.querySelectorAll('.part-item')).map(i => i.dataset.part).join(',')
+                ).filter(Boolean);
+                newPartGrid = groupRows.length > 1 ? groupRows.join(';') : '';
+                newLayout = groupRows.length > 1 ? 'grid' : 'side-by-side';
+                newPartOrder = groupRows.map(r => r.split(',')).flat().join(',');
+            } else {
+                newPartOrder = {{ part_order | tojson }}.join(',');
+                newLayout = 'side-by-side';
+            }
             const form = document.createElement('form');
             form.method = 'post';
             form.action = '{{ url_for("edit") }}';
             const fields = {
                 singers_data: document.querySelector('input[name="singers_data"]').value,
-                part_order:   sectionOrder.join(', '),
-                part_grid:    document.querySelector('input[name="part_grid"]').value,
-                layout:       document.querySelector('input[name="layout"]').value,
+                part_order:   newPartOrder,
+                part_grid:    newPartGrid,
+                layout:       newLayout,
                 num_singers:  document.querySelector('input[name="num_singers"]').value,
                 staggered:    document.querySelector('input[name="staggered"]').value,
                 flipped:      document.querySelector('input[name="flipped"]').value,
-                mixed:        document.querySelector('input[name="mixed"]').value,
+                mixed:        isMixed ? 'true' : 'false',
                 aisle_after:  document.querySelector('input[name="aisle_after"]').value,
             };
             for (const [k, v] of Object.entries(fields)) {
@@ -1076,9 +1308,6 @@
             document.body.appendChild(form);
             form.submit();
         }
-
-        buildSectionChips();
-        {% endif %}
 
         // Seed initial undo state and run height check on page load
         pushHistory();
