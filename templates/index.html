@@ -559,12 +559,29 @@ Jane Doe,Soprano,64.5</pre>
         const idxGrid = document.getElementById('idx-part-grid');
         let idxDraggedItem = null;
 
+        const _sectionPairs = {
+            'arr-body':      ['rand-arr-body',  'rand-arr-indicator'],
+            'rand-arr-body': ['arr-body',        'arr-indicator'],
+            'dim-body':      ['rand-dim-body',   'rand-dim-indicator'],
+            'rand-dim-body': ['dim-body',        'dim-indicator'],
+        };
+
         function toggleConfigureSection(bodyId, indicatorId) {
             const body = document.getElementById(bodyId);
             const indicator = document.getElementById(indicatorId);
             const open = body.style.display !== 'none';
             body.style.display = open ? 'none' : '';
             indicator.textContent = open ? '▶ Show' : '▼ Hide';
+
+            const pair = _sectionPairs[bodyId];
+            if (pair) {
+                const otherBody = document.getElementById(pair[0]);
+                const otherIndicator = document.getElementById(pair[1]);
+                if (otherBody) {
+                    otherBody.style.display = open ? 'none' : '';
+                    otherIndicator.textContent = open ? '▶ Show' : '▼ Hide';
+                }
+            }
         }
 
         function idxMakeItem(part) {
