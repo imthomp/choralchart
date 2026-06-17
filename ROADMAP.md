@@ -29,6 +29,11 @@ Effort and impact are rated Low / Med / High.
 | `feature/annotations` | Per-singer or per-section notes | Med | High |
 | `feature/pdf-export` | PDF export — page margins, legend, header, fits one sheet | High | High |
 | `feature/chart-diff` | Diff view — compare two `.choralchart` files, highlight changes | High | High |
+| `feature/snapshots` | Named chart snapshots — "save as December concert" without leaving the editor | Med | High |
+| `feature/autosave` | localStorage autosave with recovery prompt on next load — safety net if browser crashes | Med | High |
+| `feature/onboarding` | First-run experience — "here's what you'll build" preview or one-click demo chart | Med | High |
+| `feature/load-sample` | "Load sample" button that opens demo data directly in the editor — no download/re-upload | Low | High |
+| `feature/ensembles` | Ensemble/org concept — group charts, share singers across rosters, reuse layout templates | High | High |
 
 ---
 
@@ -39,6 +44,10 @@ Effort and impact are rated Low / Med / High.
 | `feature/fork-chart` | "Use as template" on read-only shared view — fork and customize | Low | Med |
 | `feature/custom-colors` | Custom part colors — directors map voice parts to their own palette | Med | Med |
 | `qa/mobile` | Touch/mobile pass — drag-and-drop on tablets, narrow layout for shared view | Med | Med |
+| `feature/sub-parts` | Voice range within a part — S1/S2, T1/T2 as an optional sub-section field | Low | Med |
+| `feature/seniority` | Seniority/experience tier field — optional number or label per singer for anchor positioning | Low | Med |
+| `feature/url-share` | URL-encoded serverless share — compress chart into base64 URL param, no server required | Med | Med |
+| `feature/roster-merge` | Merge two rosters — combined ensemble import without re-entering singers manually | Med | Med |
 
 ---
 
@@ -49,6 +58,8 @@ Effort and impact are rated Low / Med / High.
 | `feature/headcount-bar` | Section headcount summary (e.g. S: 12 · A: 11 · T: 8 · B: 9) above the chart | Low | Med |
 | `fix/dismissible-warnings` | Per-pair height warning dismissal — suppress intentional placements (soloists, etc.) | Med | Med |
 | `fix/bulk-paste` | Narrow accepted height formats; inline validation instead of silent fallback | Low | Low |
+| `fix/part-label-assumptions` | Ensure part names are always exactly what the director typed — no baked-in label logic | Low | Low |
+| `feature/share-feedback` | "Suggest a change" path on read-only shared view — way to contact the director | Low | Low |
 
 ---
 
@@ -58,6 +69,7 @@ Effort and impact are rated Low / Med / High.
 |------|------|
 | Undo/redo | Stack has no limit or persistence — clarify in UI that history is lost on tab close |
 | Arrangement panel discoverability | Collapsed by default helps power users but new users won't find it — consider one-time hint |
+| Share link server dependency | All shared links break if Render goes down — URL-encoded share is a fallback worth building |
 
 ---
 
