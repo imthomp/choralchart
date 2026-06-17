@@ -194,6 +194,14 @@ Jane Doe,Soprano,64.5</pre>
     </div>
 
     <script>
+        function updateRemoveButtons() {
+            const list = document.getElementById('sections-list');
+            const count = list.querySelectorAll('.part-section').length;
+            list.querySelectorAll('.btn-remove-row').forEach(btn => {
+                btn.style.visibility = count === 1 ? 'hidden' : 'visible';
+            });
+        }
+
         document.getElementById('add-section').addEventListener('click', () => {
             const list = document.getElementById('sections-list');
             const section = document.createElement('div');
@@ -207,14 +215,18 @@ Jane Doe,Soprano,64.5</pre>
             `;
             list.appendChild(section);
             section.querySelector('input[type="text"]').focus();
+            updateRemoveButtons();
         });
 
         function removeSection(btn) {
             const list = document.getElementById('sections-list');
             if (list.querySelectorAll('.part-section').length > 1) {
                 btn.closest('.part-section').remove();
+                updateRemoveButtons();
             }
         }
+
+        updateRemoveButtons();
     </script>
     {% include 'footer.html' %}
 </body>

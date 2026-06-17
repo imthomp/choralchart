@@ -101,6 +101,7 @@ def generate_seating_chart(
 
     if mixed:
         _mix_chart(chart)
+        _sort_columns_by_height(chart)
 
     return chart
 
@@ -224,6 +225,28 @@ def _place_side_by_side_variable(
                             chart[row_idx][pos].singer = queues[part].pop(0)
 
             current_pos += section_width
+
+
+def _sort_columns_by_height(chart: List[List[Seat]]) -> None:
+    """
+    After mixing, ensure each column is sorted tallest-in-back.
+    Preserves which singers are in which column (horizontal mixing is already done).
+    Unknown heights sort to the middle of the column.
+    """
+    if not chart:
+        return
+    cols = max(len(row) for row in chart)
+    for col in range(cols):
+        col_seats = [(r, chart[r][col]) for r in range(len(chart)) if col < len(chart[r]) and chart[r][col].singer]
+        if len(col_seats) < 2:
+            continue
+        singers = [seat.singer for _, seat in col_seats]
+        known = sorted([s for s in singers if s.height is not None], key=lambda s: s.height, reverse=True)
+        unknown = [s for s in singers if s.height is None]
+        mid = len(known) // 2
+        sorted_singers = known[:mid] + unknown + known[mid:]
+        for (r, _), singer in zip(col_seats, sorted_singers):
+            chart[r][col] = Seat(row=r, position=col, singer=singer)
 
 
 def _mix_chart(chart: List[List[Seat]]) -> None:

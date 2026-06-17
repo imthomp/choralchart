@@ -90,6 +90,28 @@
             margin-bottom: 1rem;
             flex-wrap: wrap;
         }
+        .section-chip {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 20px;
+            padding: 0.2rem 0.5rem;
+            font-size: 0.8rem;
+        }
+        .chip-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #6b7280;
+            font-size: 0.85rem;
+            padding: 0 0.2rem;
+            min-width: unset;
+            line-height: 1;
+        }
+        .chip-btn:hover:not(:disabled) { color: #1d4ed8; }
+        .chip-btn:disabled { opacity: 0.3; cursor: default; }
         /* Stagger: half of (seat width + gap) = (120 + 8) / 2 = 64px */
         .chart-container.staggered .chart-row.stagger-offset {
             transform: translateX(64px);
@@ -315,6 +337,13 @@
                        style="padding:0.35rem 0.6rem; border:1px solid #d1d5db; border-radius:6px; font-size:0.875rem; width:200px;">
             </div>
         </div>
+        {% if not mixed %}
+        <div class="chart-options" id="section-order-bar" style="gap:0.5rem;">
+            <span style="font-size:0.8rem; color:#6b7280; white-space:nowrap;">Sections:</span>
+            <div id="section-chips" style="display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap;"></div>
+            <button type="button" id="apply-section-order" onclick="applySectionOrder()" class="btn btn-secondary" style="min-width:unset; font-size:0.8rem; padding:0.3rem 0.75rem; display:none;">Apply order <span style="font-size:0.7rem; color:#9ca3af;">(resets edits)</span></button>
+        </div>
+        {% endif %}
         {% endif %}
 
         <div class="chart-panel">
@@ -485,7 +514,18 @@
 
         // Empty chairs toggle
         document.getElementById('empty-chairs-toggle').addEventListener('change', function() {
-            document.querySelector('.chart-container').classList.toggle('show-empty-chairs', this.checked);
+            const seats = document.querySelectorAll('.seat.empty');
+            if (this.checked) {
+                seats.forEach(s => s.classList.add('ec-show'));
+                requestAnimationFrame(() => requestAnimationFrame(() => {
+                    seats.forEach(s => s.classList.add('ec-visible'));
+                }));
+            } else {
+                seats.forEach(s => s.classList.remove('ec-visible'));
+                setTimeout(() => {
+                    seats.forEach(s => s.classList.remove('ec-show'));
+                }, 320);
+            }
         });
 
         // Seat number mode (left / right / both edges)
@@ -782,27 +822,45 @@
         function checkHeightWarnings() {
             document.querySelectorAll('.seat.height-warn').forEach(el => el.classList.remove('height-warn'));
 
+            const isStaggered = document.querySelector('.chart-container').classList.contains('staggered');
             const rows = Array.from(document.querySelectorAll('.chart-row'));
             for (let i = 0; i < rows.length - 1; i++) {
                 const backRow = rows[i];
                 const frontRow = rows[i + 1];
+                const backIsOffset = backRow.classList.contains('stagger-offset');
+                const frontIsOffset = frontRow.classList.contains('stagger-offset');
 
                 const backHeights = {};
                 backRow.querySelectorAll('.seat:not(.empty)').forEach(seat => {
                     const singer = JSON.parse(seat.dataset.singer);
                     if (singer && singer.height !== null) {
-                        backHeights[seat.dataset.pos] = singer.height;
+                        backHeights[parseInt(seat.dataset.pos)] = singer.height;
                     }
                 });
 
                 frontRow.querySelectorAll('.seat:not(.empty)').forEach(seat => {
                     const singer = JSON.parse(seat.dataset.singer);
-                    if (singer && singer.height !== null) {
-                        const backH = backHeights[seat.dataset.pos];
-                        if (backH !== undefined && singer.height > backH) {
-                            seat.classList.add('height-warn');
+                    if (!singer || singer.height === null) return;
+                    const pos = parseInt(seat.dataset.pos);
+                    let posesToCheck;
+                    if (isStaggered) {
+                        if (frontIsOffset && !backIsOffset) {
+                            // Front row shifted right: each front seat sits between back pos and pos+1
+                            posesToCheck = [pos, pos + 1];
+                        } else if (!frontIsOffset && backIsOffset) {
+                            // Back row shifted right: each front seat sits between back pos-1 and pos
+                            posesToCheck = [pos - 1, pos];
+                        } else {
+                            posesToCheck = [pos];
                         }
+                    } else {
+                        posesToCheck = [pos];
                     }
+                    const warned = posesToCheck.some(p => {
+                        const bh = backHeights[p];
+                        return bh !== undefined && singer.height > bh;
+                    });
+                    if (warned) seat.classList.add('height-warn');
                 });
             }
 
@@ -941,6 +999,62 @@
             updateStaggerOffsets();
             checkHeightWarnings();
         }
+
+        // --- Section reordering ---
+        {% if not mixed %}
+        let sectionOrder = [...partOrder];
+        const originalSectionOrder = [...partOrder];
+
+        function buildSectionChips() {
+            const container = document.getElementById('section-chips');
+            if (!container) return;
+            container.innerHTML = '';
+            sectionOrder.forEach((part, i) => {
+                const chip = document.createElement('div');
+                chip.className = 'section-chip';
+                chip.innerHTML =
+                    `<button class="chip-btn" onclick="movePart(${i},-1)" ${i===0?'disabled':''}>←</button>` +
+                    `<span style="padding:0 0.25rem;">${part}</span>` +
+                    `<button class="chip-btn" onclick="movePart(${i},1)" ${i===sectionOrder.length-1?'disabled':''}>→</button>`;
+                container.appendChild(chip);
+            });
+            const changed = sectionOrder.some((p, i) => p !== originalSectionOrder[i]);
+            document.getElementById('apply-section-order').style.display = changed ? '' : 'none';
+        }
+
+        function movePart(idx, dir) {
+            const target = idx + dir;
+            if (target < 0 || target >= sectionOrder.length) return;
+            [sectionOrder[idx], sectionOrder[target]] = [sectionOrder[target], sectionOrder[idx]];
+            buildSectionChips();
+        }
+
+        function applySectionOrder() {
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '{{ url_for("edit") }}';
+            const fields = {
+                singers_data: document.querySelector('input[name="singers_data"]').value,
+                part_order:   sectionOrder.join(', '),
+                part_grid:    document.querySelector('input[name="part_grid"]').value,
+                layout:       document.querySelector('input[name="layout"]').value,
+                num_singers:  document.querySelector('input[name="num_singers"]').value,
+                staggered:    document.querySelector('input[name="staggered"]').value,
+                flipped:      document.querySelector('input[name="flipped"]').value,
+                mixed:        document.querySelector('input[name="mixed"]').value,
+                aisle_after:  document.querySelector('input[name="aisle_after"]').value,
+            };
+            for (const [k, v] of Object.entries(fields)) {
+                const inp = document.createElement('input');
+                inp.type = 'hidden'; inp.name = k; inp.value = v;
+                form.appendChild(inp);
+            }
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        buildSectionChips();
+        {% endif %}
 
         // Seed initial undo state and run height check on page load
         pushHistory();

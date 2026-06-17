@@ -584,7 +584,7 @@ button:hover, .button:hover {
     color: #6b7280;
     flex-shrink: 0;
     font-weight: 500;
-    transition: transform 0.2s ease;
+    transition: transform 0.35s ease;
 }
 
 /* Seats */
@@ -606,17 +606,21 @@ button:hover, .button:hover {
 }
 
 .seat.empty {
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.3s ease, visibility 0.3s;
+    display: none;
 }
 
-.show-empty-chairs .seat.empty {
-    visibility: visible;
-    opacity: 0.5;
+.seat.empty.ec-show {
+    display: flex;
+    opacity: 0;
     border-style: dashed;
     border-color: #d1d5db;
     background: #f9fafb;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.seat.empty.ec-visible {
+    opacity: 0.5;
 }
 
 .singer-name {
