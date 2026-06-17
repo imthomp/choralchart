@@ -575,7 +575,7 @@ button:hover, .button:hover {
     margin-bottom: 0.5rem;
     align-items: center;
     justify-content: flex-start;
-    transition: transform 0.2s ease;
+    transition: transform 0.35s ease;
 }
 
 .row-label {
@@ -606,15 +606,17 @@ button:hover, .button:hover {
 }
 
 .seat.empty {
-    display: none;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s;
 }
 
 .show-empty-chairs .seat.empty {
-    display: flex;
+    visibility: visible;
+    opacity: 0.5;
     border-style: dashed;
     border-color: #d1d5db;
     background: #f9fafb;
-    opacity: 0.5;
 }
 
 .singer-name {
@@ -677,11 +679,8 @@ button:hover, .button:hover {
 
 /* Height field: fade instead of display:none */
 .singer-height {
-    transition: opacity 0.2s ease, max-height 0.2s ease;
-    overflow: hidden;
-    max-height: 1.2em;
+    transition: opacity 0.25s ease;
     opacity: 1;
-    display: inline;
 }
 
 .chart-footer {

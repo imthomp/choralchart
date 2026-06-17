@@ -176,7 +176,6 @@
         /* Height toggle: fade via opacity */
         .hide-heights .singer-height {
             opacity: 0;
-            max-height: 0;
         }
 
         /* Edit modal */
@@ -227,17 +226,25 @@
         }
     </style>
 </head>
+{% set editable = editable if editable is defined else true %}
 <body>
     {% include 'navbar.html' %}
     <div class="container">
         <div class="page-header">
+            {% if editable %}
             <h1>Edit Chart</h1>
             <p class="subtitle">{{ num_singers }} singers | {{ rows }} rows</p>
+            {% else %}
+            <h1>{{ chart_title or 'Seating Chart' }}</h1>
+            <p class="subtitle">{{ num_singers }} singers | {{ rows }} rows | {{ layout }} layout</p>
+            {% endif %}
         </div>
 
+        {% if editable %}
         <div class="edit-instructions">
-            <p><strong>Drag and drop</strong> singers to swap positions, <strong>click two seats</strong> to swap them, or <strong>double-click</strong> a singer to change their voice part.</p>
+            <p><strong>Drag and drop</strong> singers to swap positions, <strong>click two seats</strong> to swap them, or <strong>double-click</strong> a singer to edit name, height, or voice part.</p>
         </div>
+        {% endif %}
 
         {% if single_wide_parts %}
         <div class="single-wide-warning">
@@ -248,13 +255,17 @@
             <p><strong>Height warning:</strong> Some singers are taller than the person directly behind them. Their seats are highlighted in orange.</p>
         </div>
 
-        <!-- Voice part edit modal -->
+        <!-- Singer edit modal -->
         <div class="modal-overlay" id="edit-modal">
             <div class="modal">
                 <h3>Edit Singer</h3>
                 <div class="modal-field">
-                    <label>Name</label>
-                    <strong id="modal-name"></strong>
+                    <label for="modal-name">Name</label>
+                    <input type="text" id="modal-name" style="width:100%; padding:0.5rem 0.75rem; border:2px solid #e5e7eb; border-radius:8px; font-size:1rem;">
+                </div>
+                <div class="modal-field">
+                    <label for="modal-height">Height <span style="font-size:0.75rem; color:#9ca3af;">(e.g. 5'10" — leave blank if unknown)</span></label>
+                    <input type="text" id="modal-height" placeholder="5'10&quot;" style="width:100%; padding:0.5rem 0.75rem; border:2px solid #e5e7eb; border-radius:8px; font-size:1rem;">
                 </div>
                 <div class="modal-field">
                     <label for="modal-part">Voice Part</label>
@@ -272,6 +283,7 @@
             </div>
         </div>
 
+        {% if editable %}
         <div class="chart-options">
             <label class="checkbox-option">
                 <input type="checkbox" id="flip-toggle" {% if flipped %}checked{% endif %}>
@@ -303,6 +315,7 @@
                        style="padding:0.35rem 0.6rem; border:1px solid #d1d5db; border-radius:6px; font-size:0.875rem; width:200px;">
             </div>
         </div>
+        {% endif %}
 
         <div class="chart-panel">
             <div class="chart-wrapper{% if flipped %} flipped{% endif %}">
@@ -364,11 +377,13 @@
         <input type="hidden" name="mixed" value="{{ 'true' if mixed else 'false' }}">
         <input type="hidden" name="aisle_after" value="{{ aisle_after or '' }}">
 
+        {% if editable %}
         <input type="hidden" id="share_id" value="">
         <div class="actions">
             <a href="{{ url_for('index') }}" class="btn btn-secondary">Start Over</a>
             <button type="button" id="btn-undo" onclick="undo()" class="btn btn-secondary" disabled>&#8617; Undo</button>
             <button type="button" id="btn-redo" onclick="redo()" class="btn btn-secondary" disabled>&#8618; Redo</button>
+            <button type="button" onclick="reshuffleChart()" class="btn btn-secondary">Re-shuffle</button>
             <button type="button" onclick="saveChart()" class="btn btn-secondary">Save chart</button>
             <button type="button" id="btn-share" onclick="shareChart()" class="btn btn-secondary">Share link</button>
             <button type="button" onclick="exportImage()" class="btn btn-success">Save as Image</button>
@@ -379,9 +394,27 @@
             <button type="button" onclick="copyShareUrl()" class="btn btn-secondary" style="padding:0.25rem 0.75rem; min-width:unset; font-size:0.8rem;">Copy</button>
             <button type="button" onclick="shareChart()" class="btn btn-secondary" style="padding:0.25rem 0.75rem; min-width:unset; font-size:0.8rem;">Update</button>
         </div>
+        {% else %}
+        <div class="actions">
+            <a href="{{ url_for('index') }}" class="btn btn-secondary">New Chart</a>
+            <form action="{{ url_for('edit') }}" method="post" style="display:contents;">
+                <input type="hidden" name="chart_data" value="{{ chart_data }}">
+                <input type="hidden" name="singers_data" value="{{ singers_data }}">
+                <input type="hidden" name="part_order" value="{{ part_order | join(', ') }}">
+                <input type="hidden" name="layout" value="{{ layout }}">
+                <input type="hidden" name="num_singers" value="{{ num_singers }}">
+                <input type="hidden" name="flipped" value="{{ 'true' if flipped else 'false' }}">
+                <input type="hidden" name="staggered" value="{{ 'true' if staggered else 'false' }}">
+                <input type="hidden" name="mixed" value="{{ 'true' if mixed is defined and mixed else 'false' }}">
+                <button type="submit" class="btn btn-primary">Edit Chart</button>
+            </form>
+            <button type="button" onclick="exportImage()" class="btn btn-success">Save as Image</button>
+        </div>
+        {% endif %}
     </div>
 
     <script>
+        {% if editable %}
         // Flip toggle functionality
         document.getElementById('flip-toggle').addEventListener('change', function() {
             const wrapper = document.querySelector('.chart-wrapper');
@@ -542,19 +575,19 @@
                 seatEl.dataset.singer = JSON.stringify(singerData);
 
                 // Format height
-                const feet = Math.floor(singerData.height / 12);
-                const inches = singerData.height % 12;
-                let heightStr;
-                if (inches % 1 === 0.5) {
-                    heightStr = `${feet}'${Math.floor(inches)}.5"`;
-                } else {
-                    heightStr = `${feet}'${Math.floor(inches)}"`;
+                let heightStr = '';
+                if (singerData.height != null) {
+                    const feet = Math.floor(singerData.height / 12);
+                    const inches = singerData.height % 12;
+                    heightStr = inches % 1 === 0.5
+                        ? `${feet}'${Math.floor(inches)}.5"`
+                        : `${feet}'${Math.floor(inches)}"`;
                 }
 
                 seatEl.innerHTML = `
                     <span class="seat-number">${seatNum}</span>
                     <span class="singer-name">${singerData.name}</span>
-                    <span class="singer-info"><span class="singer-part">${singerData.voice_part}</span><span class="singer-height"> | ${heightStr}</span></span>
+                    <span class="singer-info"><span class="singer-part">${singerData.voice_part}</span>${heightStr ? `<span class="singer-height"> | ${heightStr}</span>` : ''}</span>
                 `;
             } else {
                 seatEl.className = 'seat empty';
@@ -676,11 +709,29 @@
         // Modal functionality
         let editingSeat = null;
 
+        function parseHeightInput(str) {
+            str = (str || '').trim();
+            if (!str) return null;
+            const m = str.match(/^(\d+)'\s*(\d+(?:\.\d+)?)"?$/);
+            if (m) return parseFloat(m[1]) * 12 + parseFloat(m[2]);
+            const n = parseFloat(str);
+            return isNaN(n) || n <= 0 ? null : n;
+        }
+
+        function heightToInputStr(h) {
+            if (h == null) return '';
+            const ft = Math.floor(h / 12);
+            const inc = h % 12;
+            return inc % 1 === 0.5 ? `${ft}'${Math.floor(inc)}.5"` : `${ft}'${Math.floor(inc)}"`;
+        }
+
         function openModal(seatEl, singer) {
             editingSeat = seatEl;
-            document.getElementById('modal-name').textContent = singer.name;
+            document.getElementById('modal-name').value = singer.name;
+            document.getElementById('modal-height').value = heightToInputStr(singer.height);
             document.getElementById('modal-part').value = singer.voice_part;
             document.getElementById('edit-modal').classList.add('active');
+            setTimeout(() => document.getElementById('modal-name').select(), 10);
         }
 
         function closeModal() {
@@ -690,25 +741,25 @@
 
         function savePart() {
             if (!editingSeat) return;
-
             const singer = JSON.parse(editingSeat.dataset.singer);
-            const newPart = document.getElementById('modal-part').value;
-
-            if (newPart !== singer.voice_part) {
-                singer.voice_part = newPart;
-                updateSeatDisplay(editingSeat, singer);
-                updateChartData();
-                pushHistory();
-            }
-
+            const newName = document.getElementById('modal-name').value.trim();
+            if (!newName) { document.getElementById('modal-name').focus(); return; }
+            singer.name = newName;
+            singer.height = parseHeightInput(document.getElementById('modal-height').value);
+            singer.voice_part = document.getElementById('modal-part').value;
+            updateSeatDisplay(editingSeat, singer);
+            updateChartData();
+            pushHistory();
+            checkHeightWarnings();
             closeModal();
         }
 
-        // Close modal on overlay click
+        // Close modal on overlay click or Enter key
         document.getElementById('edit-modal').addEventListener('click', (e) => {
-            if (e.target.id === 'edit-modal') {
-                closeModal();
-            }
+            if (e.target.id === 'edit-modal') closeModal();
+        });
+        document.getElementById('edit-modal').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); savePart(); }
         });
 
         // Keyboard shortcuts
@@ -853,9 +904,48 @@
             });
         }
 
+        function reshuffleChart() {
+            const isMixed = document.querySelector('input[name="mixed"]').value === 'true';
+            const seats = Array.from(document.querySelectorAll('.seat:not(.empty)'));
+
+            function shuffle(arr) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+            }
+
+            if (isMixed) {
+                // Full random shuffle
+                const singers = seats.map(s => JSON.parse(s.dataset.singer));
+                shuffle(singers);
+                seats.forEach((seat, i) => updateSeatDisplay(seat, singers[i]));
+            } else {
+                // Shuffle within each voice part's seats
+                const partGroups = {};
+                seats.forEach(s => {
+                    const singer = JSON.parse(s.dataset.singer);
+                    const p = singer.voice_part;
+                    if (!partGroups[p]) partGroups[p] = { seats: [], singers: [] };
+                    partGroups[p].seats.push(s);
+                    partGroups[p].singers.push(singer);
+                });
+                Object.values(partGroups).forEach(({ seats: ps, singers: sg }) => {
+                    shuffle(sg);
+                    ps.forEach((seat, i) => updateSeatDisplay(seat, sg[i]));
+                });
+            }
+
+            updateChartData();
+            pushHistory();
+            updateStaggerOffsets();
+            checkHeightWarnings();
+        }
+
         // Seed initial undo state and run height check on page load
         pushHistory();
         checkHeightWarnings();
+        {% endif %}
 
         // Export chart as PNG image (full scrollable area, not just visible portion)
         function exportImage() {

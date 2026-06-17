@@ -162,18 +162,7 @@ def show_configure_page(singers: list[Singer]):
 
 @app.route('/preview', methods=['POST'])
 def preview():
-    """Generate chart and go directly to edit page."""
-    try:
-        chart_data = generate_chart_from_form()
-        # Default staggered to true for new charts
-        chart_data['staggered'] = True
-        return render_template('edit.html', **chart_data)
-    except ValueError as e:
-        flash(str(e))
-        return redirect(url_for('index'))
-    except Exception as e:
-        flash(f'Error generating chart: {str(e)}')
-        return redirect(url_for('index'))
+    return redirect(url_for('index'))
 
 
 @app.route('/edit', methods=['POST'])
@@ -228,20 +217,6 @@ def load():
         )
     except Exception as e:
         flash(f'Error loading chart: {str(e)}')
-        return redirect(url_for('index'))
-
-
-@app.route('/finalize', methods=['POST'])
-def finalize():
-    """Show finalized seating chart for viewing/download."""
-    try:
-        chart_data = get_chart_data_from_form()
-        return render_template('finalize.html', **chart_data)
-    except ValueError as e:
-        flash(str(e))
-        return redirect(url_for('index'))
-    except Exception as e:
-        flash(f'Error finalizing chart: {str(e)}')
         return redirect(url_for('index'))
 
 
@@ -630,7 +605,8 @@ def view_chart(chart_id):
     part_order = [p.strip() for p in row['part_order'].split(',') if p.strip()]
     stagger_offsets = calculate_stagger_offsets(chart)
 
-    return render_template('finalize.html',
+    return render_template('edit.html',
+        editable=False,
         chart=chart,
         chart_data=row['chart_data'],
         num_singers=row['num_singers'],
@@ -640,10 +616,12 @@ def view_chart(chart_id):
         seats_per_row=len(chart[0]) if chart else 0,
         flipped=row['flipped'] == 'true',
         staggered=row['staggered'] == 'true',
+        mixed=row['mixed'] == 'true',
         aisle_after=None,
         singers_data=row['singers_data'] or '',
         stagger_offsets=stagger_offsets,
-        share_id=chart_id,
+        single_wide_parts=[],
+        part_grid_str=row['part_grid'] or '',
         chart_title=row['title'] or '',
     )
 
