@@ -21,7 +21,7 @@
             display: flex;
             gap: 0.5rem;
             align-items: center;
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.5rem;
         }
         .part-section-header input[type="text"] {
             flex: 1;
@@ -36,26 +36,106 @@
             outline: none;
             border-color: #2563eb;
         }
-        textarea.names-list {
+        .part-section-header .btn-remove-row {
+            align-self: stretch;
+        }
+        /* Singer rows */
+        .singer-rows { margin-bottom: 0.35rem; }
+        .singer-row {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin-bottom: 0.35rem;
+        }
+        .singer-name-input {
+            flex: 1;
+            min-width: 0;
+            padding: 0.4rem 0.6rem;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 7px;
+            font-size: 0.875rem;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+        .singer-name-input:focus { outline: none; border-color: #2563eb; }
+        .height-selects {
+            display: flex;
+            align-items: center;
+            gap: 0.15rem;
+            flex-shrink: 0;
+        }
+        .singer-ft, .singer-in {
+            padding: 0.4rem 0.25rem;
+            border: 1.5px solid #e5e7eb;
+            border-radius: 7px;
+            font-size: 0.8rem;
+            font-family: inherit;
+            background: #fff;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .singer-ft:focus, .singer-in:focus { outline: none; border-color: #2563eb; }
+        .singer-ft { width: 54px; }
+        .singer-in { width: 46px; }
+        .singer-in:disabled { color: #d1d5db; background: #f9fafb; cursor: default; }
+        .height-sep { color: #9ca3af; font-size: 0.85rem; line-height: 1; }
+        .btn-remove-singer {
+            background: none;
+            border: none;
+            color: #d1d5db;
+            cursor: pointer;
+            font-size: 0.9rem;
+            padding: 0.2rem 0.3rem;
+            min-width: unset;
+            line-height: 1;
+            flex-shrink: 0;
+            transition: color 0.1s;
+        }
+        .btn-remove-singer:hover { color: #ef4444; }
+        .section-footer {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 0.25rem;
+        }
+        .add-singer-btn {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 0.2rem 0;
+            min-width: unset;
+            transition: color 0.15s;
+        }
+        .add-singer-btn:hover { color: #2563eb; }
+        .bulk-toggle-btn {
+            background: none;
+            border: none;
+            color: #d1d5db;
+            font-size: 0.75rem;
+            cursor: pointer;
+            padding: 0.2rem 0;
+            min-width: unset;
+            margin-left: auto;
+            transition: color 0.15s;
+        }
+        .bulk-toggle-btn:hover { color: #9ca3af; }
+        textarea.bulk-area {
             width: 100%;
             min-height: 80px;
             padding: 0.5rem 0.75rem;
             font-size: 0.875rem;
             font-family: inherit;
-            border: 2px solid #e5e7eb;
+            border: 1.5px solid #e5e7eb;
             border-radius: 8px;
             resize: vertical;
             transition: border-color 0.2s;
             line-height: 1.6;
+            margin-bottom: 0.35rem;
         }
-        textarea.names-list:focus {
-            outline: none;
-            border-color: #2563eb;
-        }
-        textarea.names-list::placeholder {
-            color: #9ca3af;
-            font-size: 0.8rem;
-        }
+        textarea.bulk-area:focus { outline: none; border-color: #2563eb; }
+        textarea.bulk-area::placeholder { color: #9ca3af; font-size: 0.8rem; }
         .add-section-btn {
             background: none;
             border: 1px dashed #d1d5db;
@@ -68,13 +148,8 @@
             margin-top: 0.5rem;
             transition: all 0.15s;
         }
-        .add-section-btn:hover {
-            border-color: #2563eb;
-            color: #2563eb;
-        }
-        details.advanced {
-            margin-top: 1rem;
-        }
+        .add-section-btn:hover { border-color: #2563eb; color: #2563eb; }
+        details.advanced { margin-top: 1rem; }
         details.advanced > summary {
             cursor: pointer;
             color: #9ca3af;
@@ -87,9 +162,6 @@
         details.advanced > summary::before { content: '▶ '; font-size: 0.65rem; }
         details.advanced[open] > summary::before { content: '▼ '; }
         details.advanced > summary:hover { color: #6b7280; }
-        .part-section-header .btn-remove-row {
-            align-self: stretch;
-        }
     </style>
 </head>
 <body>
@@ -114,9 +186,9 @@
         <!-- Primary: Enter Roster -->
         <div class="card" style="margin-top: 1.5rem;">
             <h2>Enter Your Roster</h2>
-            <p style="margin-bottom: 1rem;">Paste names one per line. Optionally add height: <em>John Smith, 5'10"</em></p>
+            <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.9rem;">Add singers by voice part. Height is optional but enables taller-in-back sorting.</p>
 
-            <form action="{{ url_for('configure_post') }}" method="post">
+            <form id="roster-form" action="{{ url_for('configure_post') }}" method="post">
                 <input type="hidden" name="entry_type" value="manual">
                 <div id="sections-list">
                     <div class="part-section">
@@ -124,11 +196,17 @@
                             <input type="text" name="part_name" placeholder="Voice part (e.g. Soprano)" required>
                             <button type="button" class="btn-remove-row" onclick="removeSection(this)">✕</button>
                         </div>
-                        <textarea class="names-list" name="part_names_list" placeholder="Jane Smith&#10;Alice Johnson, 5'4&quot;&#10;Mary Davis"></textarea>
+                        <div class="singer-rows"></div>
+                        <div class="section-footer">
+                            <button type="button" class="add-singer-btn" onclick="addSingerRow(this)">+ Add singer</button>
+                            <button type="button" class="bulk-toggle-btn" onclick="toggleBulk(this)">paste bulk…</button>
+                        </div>
+                        <textarea class="bulk-area" style="display:none;" placeholder="One name per line. Optionally add height: Jane Smith, 5'4&quot;"></textarea>
+                        <textarea class="names-list" name="part_names_list" style="display:none;"></textarea>
                     </div>
                 </div>
                 <button type="button" class="add-section-btn" id="add-section">+ Add Voice Part</button>
-                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 0.75rem;">Create Seating Chart</button>
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 0.75rem;">Create Seating Chart →</button>
             </form>
         </div>
 
@@ -194,15 +272,100 @@ Jane Doe,Soprano,64.5</pre>
     </div>
 
     <script>
-        function updateRemoveButtons() {
-            const list = document.getElementById('sections-list');
-            const count = list.querySelectorAll('.part-section').length;
-            list.querySelectorAll('.btn-remove-row').forEach(btn => {
-                btn.style.visibility = count === 1 ? 'hidden' : 'visible';
+        function makeFtSelect() {
+            const sel = document.createElement('select');
+            sel.className = 'singer-ft';
+            sel.innerHTML = '<option value="">ft</option>' +
+                [4,5,6,7].map(f => `<option value="${f}">${f}</option>`).join('');
+            sel.addEventListener('change', function() {
+                const inSel = this.closest('.height-selects').querySelector('.singer-in');
+                inSel.disabled = !this.value;
+                if (!this.value) inSel.value = '0';
             });
+            return sel;
         }
 
-        document.getElementById('add-section').addEventListener('click', () => {
+        function makeInSelect() {
+            const sel = document.createElement('select');
+            sel.className = 'singer-in';
+            sel.disabled = true;
+            sel.innerHTML = Array.from({length: 12}, (_, i) => `<option value="${i}">${i}</option>`).join('');
+            return sel;
+        }
+
+        function makeSingerRow(name, ft, inc) {
+            const row = document.createElement('div');
+            row.className = 'singer-row';
+
+            const nameInput = document.createElement('input');
+            nameInput.type = 'text';
+            nameInput.className = 'singer-name-input';
+            nameInput.placeholder = 'Name';
+            if (name) nameInput.value = name;
+
+            const heightWrap = document.createElement('div');
+            heightWrap.className = 'height-selects';
+            const ftSel = makeFtSelect();
+            const sep = document.createElement('span');
+            sep.className = 'height-sep';
+            sep.textContent = "'";
+            const inSel = makeInSelect();
+            const sep2 = document.createElement('span');
+            sep2.className = 'height-sep';
+            sep2.textContent = '"';
+            if (ft) { ftSel.value = ft; inSel.disabled = false; inSel.value = inc || '0'; }
+            heightWrap.append(ftSel, sep, inSel, sep2);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn-remove-singer';
+            removeBtn.textContent = '✕';
+            removeBtn.onclick = function() { row.remove(); };
+
+            row.append(nameInput, heightWrap, removeBtn);
+            return row;
+        }
+
+        function addSingerRow(btn) {
+            const section = btn.closest('.part-section');
+            const container = section.querySelector('.singer-rows');
+            const row = makeSingerRow();
+            container.appendChild(row);
+            row.querySelector('.singer-name-input').focus();
+        }
+
+        function toggleBulk(btn) {
+            const section = btn.closest('.part-section');
+            const rows = section.querySelector('.singer-rows');
+            const footer = section.querySelector('.section-footer');
+            const bulkArea = section.querySelector('.bulk-area');
+            const isBulk = bulkArea.style.display !== 'none';
+            if (isBulk) {
+                bulkArea.style.display = 'none';
+                rows.style.display = '';
+                footer.style.display = '';
+                btn.textContent = 'paste bulk…';
+            } else {
+                rows.style.display = 'none';
+                footer.style.display = 'none';
+                bulkArea.style.display = '';
+                btn.style.display = '';
+                bulkArea.focus();
+                btn.textContent = '← back to rows';
+                // Move bulk toggle outside section-footer when in bulk mode
+                section.insertBefore(btn, bulkArea.nextSibling);
+            }
+        }
+
+        function initSection(section, initialRows) {
+            const container = section.querySelector('.singer-rows');
+            const count = initialRows || 3;
+            for (let i = 0; i < count; i++) {
+                container.appendChild(makeSingerRow());
+            }
+        }
+
+        function addSection() {
             const list = document.getElementById('sections-list');
             const section = document.createElement('div');
             section.className = 'part-section';
@@ -211,12 +374,21 @@ Jane Doe,Soprano,64.5</pre>
                     <input type="text" name="part_name" placeholder="Voice part" required>
                     <button type="button" class="btn-remove-row" onclick="removeSection(this)">✕</button>
                 </div>
-                <textarea class="names-list" name="part_names_list" placeholder="Names, one per line"></textarea>
+                <div class="singer-rows"></div>
+                <div class="section-footer">
+                    <button type="button" class="add-singer-btn" onclick="addSingerRow(this)">+ Add singer</button>
+                    <button type="button" class="bulk-toggle-btn" onclick="toggleBulk(this)">paste bulk…</button>
+                </div>
+                <textarea class="bulk-area" style="display:none;" placeholder="One name per line. Optionally add height: Jane Smith, 5'4&quot;"></textarea>
+                <textarea class="names-list" name="part_names_list" style="display:none;"></textarea>
             `;
             list.appendChild(section);
+            initSection(section, 3);
             section.querySelector('input[type="text"]').focus();
             updateRemoveButtons();
-        });
+        }
+
+        document.getElementById('add-section').addEventListener('click', addSection);
 
         function removeSection(btn) {
             const list = document.getElementById('sections-list');
@@ -226,6 +398,38 @@ Jane Doe,Soprano,64.5</pre>
             }
         }
 
+        function updateRemoveButtons() {
+            const list = document.getElementById('sections-list');
+            const count = list.querySelectorAll('.part-section').length;
+            list.querySelectorAll('.btn-remove-row').forEach(btn => {
+                btn.style.visibility = count === 1 ? 'hidden' : 'visible';
+            });
+        }
+
+        // On submit: collect individual rows into hidden textareas
+        document.getElementById('roster-form').addEventListener('submit', function() {
+            document.querySelectorAll('.part-section').forEach(section => {
+                const hidden = section.querySelector('textarea[name="part_names_list"]');
+                const bulkArea = section.querySelector('.bulk-area');
+
+                if (bulkArea.style.display !== 'none') {
+                    hidden.value = bulkArea.value;
+                } else {
+                    const lines = [];
+                    section.querySelectorAll('.singer-row').forEach(row => {
+                        const name = row.querySelector('.singer-name-input').value.trim();
+                        if (!name) return;
+                        const ft = row.querySelector('.singer-ft').value;
+                        const inc = row.querySelector('.singer-in').value;
+                        lines.push(ft ? `${name}, ${ft}'${inc}"` : name);
+                    });
+                    hidden.value = lines.join('\n');
+                }
+            });
+        });
+
+        // Initialize the first section
+        initSection(document.querySelector('.part-section'), 3);
         updateRemoveButtons();
     </script>
     {% include 'footer.html' %}
