@@ -395,7 +395,7 @@ Jane Doe,Soprano,64.5</pre>
             const sel = document.createElement('select');
             sel.className = 'singer-ft';
             sel.innerHTML = '<option value="">ft</option>' +
-                [4,5,6,7].map(f => `<option value="${f}">${f}</option>`).join('');
+                [2,3,4,5,6,7,8].map(f => `<option value="${f}">${f}</option>`).join('');
             sel.addEventListener('change', function() {
                 const inSel = this.closest('.height-selects').querySelector('.singer-in');
                 inSel.disabled = !this.value;

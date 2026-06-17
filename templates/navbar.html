@@ -6,7 +6,16 @@
 </script>
 <nav class="navbar">
     <a href="{{ url_for('index') }}" class="nav-brand">
-        <img src="{{ url_for('static', filename='favicon.svg') }}" alt="" width="24" height="24" style="vertical-align: middle; margin-right: 0.4rem;">ChoralChart
+        <svg width="24" height="24" viewBox="0 0 32 32" style="vertical-align: middle; margin-right: 0.4rem; flex-shrink: 0;" aria-hidden="true">
+            <rect width="32" height="32" rx="6" fill="var(--bg)"/>
+            <polygon points="12.5,2.5 25.5,6.5 25.5,10.5 12.5,6.5" class="nav-logo-beam"/>
+            <line x1="13" y1="6.5" x2="13" y2="14.5" class="nav-logo-beam" stroke-width="1" stroke-linecap="square" fill="none"/>
+            <line x1="25" y1="10.5" x2="25" y2="20.5" class="nav-logo-beam" stroke-width="1" stroke-linecap="square" fill="none"/>
+            <text font-family="'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="15" fill="var(--brand)">
+                <tspan x="4.8" y="23.5">C</tspan>
+                <tspan x="16.8" y="29.5">C</tspan>
+            </text>
+        </svg>ChoralChart
     </a>
     <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode">◑</button>
 </nav>

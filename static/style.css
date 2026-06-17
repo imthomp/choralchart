@@ -937,6 +937,12 @@ html[data-theme="light"] {
     color-scheme: light;
 }
 
+/* Navbar logo inline SVG */
+.nav-logo-beam { fill: #000; stroke: #000; }
+@media (prefers-color-scheme: dark) { .nav-logo-beam { fill: #fff; stroke: #fff; } }
+html[data-theme="dark"] .nav-logo-beam { fill: #fff; stroke: #fff; }
+html[data-theme="light"] .nav-logo-beam { fill: #000; stroke: #000; }
+
 /* Theme toggle button */
 .theme-toggle {
     background: none;
