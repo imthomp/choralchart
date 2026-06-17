@@ -93,32 +93,31 @@
         .section-chip {
             display: flex;
             align-items: center;
-            gap: 0.2rem;
-            background: #f3f4f6;
-            border: 1px solid #d1d5db;
-            border-radius: 20px;
-            padding: 0.2rem 0.5rem;
-            font-size: 0.8rem;
+            gap: 0.5rem;
+            padding: 0.5rem 0.875rem;
+            background: #dbeafe;
+            border: 2px solid #93c5fd;
+            border-radius: 8px;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.15s;
+            font-size: 0.875rem;
         }
-        .chip-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #6b7280;
-            font-size: 0.85rem;
-            padding: 0 0.2rem;
-            min-width: unset;
-            line-height: 1;
-        }
-        .chip-btn:hover:not(:disabled) { color: #1d4ed8; }
-        .chip-btn:disabled { opacity: 0.3; cursor: default; }
+        .section-chip:hover { background: #bfdbfe; }
+        .section-chip.dragging { opacity: 0.4; cursor: grabbing; }
+        .section-chip.drag-over { outline: 2px dashed #2563eb; outline-offset: 2px; }
+        .section-chip .drag-handle { color: #6b7280; font-size: 0.9rem; }
+        .section-chip .chip-label { font-weight: 500; color: #1e40af; }
         /* Stagger: half of (seat width + gap) = (120 + 8) / 2 = 64px */
-        .chart-container.staggered .chart-row.stagger-offset {
+        /* Transform only the seats wrapper, so the row label stays fixed */
+        .chart-container.staggered .chart-row.stagger-offset .row-seats {
             transform: translateX(64px);
         }
-        /* Keep row labels aligned when staggered */
-        .chart-container.staggered .chart-row.stagger-offset .row-label {
-            transform: translateX(-64px);
+        .row-seats {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            transition: transform 0.35s ease;
         }
         .seat.aisle-before {
             margin-left: 40px;
@@ -352,6 +351,7 @@
                     {% for row in chart %}
                         <div class="chart-row{% if stagger_offsets[loop.index0] %} stagger-offset{% endif %}">
                             <span class="row-label">Row {{ loop.revindex }}</span>
+                            <div class="row-seats">
                             {% for seat in row %}
                                 {% set is_after_aisle = aisle_after and seat.position == aisle_after %}
                                 {% if seat.singer %}
@@ -374,6 +374,7 @@
                                     </div>
                                 {% endif %}
                             {% endfor %}
+                            </div>
                         </div>
                     {% endfor %}
                 </div>
@@ -500,6 +501,12 @@
                 container.classList.remove('staggered');
                 hiddenStaggered.value = 'false';
             }
+            // Pulse the row labels so they visually acknowledge the change
+            document.querySelectorAll('.row-label').forEach(lbl => {
+                lbl.style.transition = 'opacity 0.18s ease';
+                lbl.style.opacity = '0.3';
+                setTimeout(() => { lbl.style.opacity = '1'; }, 180);
+            });
         });
 
         // Height toggle functionality
@@ -1004,6 +1011,7 @@
         {% if not mixed %}
         let sectionOrder = [...partOrder];
         const originalSectionOrder = [...partOrder];
+        let dragSrcIdx = null;
 
         function buildSectionChips() {
             const container = document.getElementById('section-chips');
@@ -1012,21 +1020,37 @@
             sectionOrder.forEach((part, i) => {
                 const chip = document.createElement('div');
                 chip.className = 'section-chip';
-                chip.innerHTML =
-                    `<button class="chip-btn" onclick="movePart(${i},-1)" ${i===0?'disabled':''}>←</button>` +
-                    `<span style="padding:0 0.25rem;">${part}</span>` +
-                    `<button class="chip-btn" onclick="movePart(${i},1)" ${i===sectionOrder.length-1?'disabled':''}>→</button>`;
+                chip.draggable = true;
+                chip.dataset.idx = i;
+                chip.innerHTML = `<span class="drag-handle">⠿</span><span class="chip-label">${part}</span>`;
+
+                chip.addEventListener('dragstart', e => {
+                    dragSrcIdx = i;
+                    chip.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+                chip.addEventListener('dragend', () => {
+                    chip.classList.remove('dragging');
+                    container.querySelectorAll('.section-chip').forEach(c => c.classList.remove('drag-over'));
+                });
+                chip.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    container.querySelectorAll('.section-chip').forEach(c => c.classList.remove('drag-over'));
+                    chip.classList.add('drag-over');
+                });
+                chip.addEventListener('drop', e => {
+                    e.preventDefault();
+                    if (dragSrcIdx !== null && dragSrcIdx !== i) {
+                        const moved = sectionOrder.splice(dragSrcIdx, 1)[0];
+                        sectionOrder.splice(i, 0, moved);
+                        buildSectionChips();
+                    }
+                });
                 container.appendChild(chip);
             });
             const changed = sectionOrder.some((p, i) => p !== originalSectionOrder[i]);
             document.getElementById('apply-section-order').style.display = changed ? '' : 'none';
-        }
-
-        function movePart(idx, dir) {
-            const target = idx + dir;
-            if (target < 0 || target >= sectionOrder.length) return;
-            [sectionOrder[idx], sectionOrder[target]] = [sectionOrder[target], sectionOrder[idx]];
-            buildSectionChips();
         }
 
         function applySectionOrder() {

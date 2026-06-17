@@ -571,11 +571,10 @@ button:hover, .button:hover {
 
 .chart-row {
     display: flex;
-    gap: 0.5rem;
+    gap: 0;
     margin-bottom: 0.5rem;
     align-items: center;
     justify-content: flex-start;
-    transition: transform 0.35s ease;
 }
 
 .row-label {
@@ -655,7 +654,7 @@ button:hover, .button:hover {
     border-radius: 0;
 }
 
-.chart-container.staggered .chart-row {
+.chart-container.staggered .chart-row .row-seats {
     justify-content: center;
 }
 
