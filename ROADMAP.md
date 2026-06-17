@@ -22,6 +22,45 @@ Effort and impact are rated Low / Med / High.
 
 ---
 
+## High Impact
+
+| Branch | Idea | Effort | Impact |
+|--------|------|--------|--------|
+| `feature/annotations` | Per-singer or per-section notes | Med | High |
+| `feature/pdf-export` | PDF export — page margins, legend, header, fits one sheet | High | High |
+| `feature/chart-diff` | Diff view — compare two `.choralchart` files, highlight changes | High | High |
+
+---
+
+## Medium Impact
+
+| Branch | Idea | Effort | Impact |
+|--------|------|--------|--------|
+| `feature/fork-chart` | "Use as template" on read-only shared view — fork and customize | Low | Med |
+| `feature/custom-colors` | Custom part colors — directors map voice parts to their own palette | Med | Med |
+| `qa/mobile` | Touch/mobile pass — drag-and-drop on tablets, narrow layout for shared view | Med | Med |
+
+---
+
+## Small But Useful
+
+| Branch | Idea | Effort | Impact |
+|--------|------|--------|--------|
+| `feature/headcount-bar` | Section headcount summary (e.g. S: 12 · A: 11 · T: 8 · B: 9) above the chart | Low | Med |
+| `fix/dismissible-warnings` | Per-pair height warning dismissal — suppress intentional placements (soloists, etc.) | Med | Med |
+| `fix/bulk-paste` | Narrow accepted height formats; inline validation instead of silent fallback | Low | Low |
+
+---
+
+## To Reconsider
+
+| Area | Note |
+|------|------|
+| Undo/redo | Stack has no limit or persistence — clarify in UI that history is lost on tab close |
+| Arrangement panel discoverability | Collapsed by default helps power users but new users won't find it — consider one-time hint |
+
+---
+
 ## Other Ideas
 
 | Branch | Idea | Effort | Impact |
