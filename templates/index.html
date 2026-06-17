@@ -162,6 +162,73 @@
         details.advanced > summary::before { content: '▶ '; font-size: 0.65rem; }
         details.advanced[open] > summary::before { content: '▼ '; }
         details.advanced > summary:hover { color: #6b7280; }
+        /* Configure sections */
+        .configure-divider {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 1rem 0 0.75rem;
+        }
+        .configure-section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.1rem 0.2rem;
+            margin: -0.1rem -0.2rem;
+            border-radius: 6px;
+            transition: background 0.15s;
+            user-select: none;
+        }
+        .configure-section-header:hover { background: #f3f4f6; }
+        .configure-section-header h3 { font-size: 0.875rem; font-weight: 600; color: #374151; margin: 0; }
+        .configure-toggle-indicator { font-size: 0.8rem; color: #9ca3af; margin-left: auto; }
+        .configure-section-body { margin-top: 0.75rem; }
+        /* Part arrangement (same as configure page) */
+        .idx-mode-picker { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+        .idx-mode-option {
+            flex: 1; display: flex; flex-direction: column; gap: 0.15rem;
+            padding: 0.6rem 0.875rem; border: 2px solid #e5e7eb; border-radius: 8px;
+            cursor: pointer; background: white; transition: all 0.15s;
+        }
+        .idx-mode-option input[type="radio"] { display: none; }
+        .idx-mode-option.active { border-color: #2563eb; background: #eff6ff; }
+        .idx-mode-option:hover:not(.active) { border-color: #93c5fd; background: #f0f9ff; }
+        .idx-mode-option .mode-title { font-weight: 600; font-size: 0.85rem; color: #1e40af; }
+        .idx-mode-option:not(.active) .mode-title { color: #374151; }
+        .idx-mode-option .mode-desc { font-size: 0.75rem; color: #6b7280; }
+        .idx-part-grid { display: flex; flex-direction: column; gap: 0.4rem; }
+        .idx-grid-group {
+            border: 2px solid #e5e7eb; border-radius: 8px; padding: 0.6rem 0.75rem; background: #f9fafb;
+        }
+        .idx-grid-group.drag-target { border-color: #2563eb; background: #eff6ff; }
+        .idx-grid-group-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; }
+        .idx-grid-group-label { font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; }
+        .idx-btn-remove-group {
+            background: none; border: 1px solid #d1d5db; border-radius: 4px; color: #9ca3af;
+            cursor: pointer; font-size: 0.7rem; padding: 0.1rem 0.4rem; min-width: unset; line-height: 1.4;
+        }
+        .idx-btn-remove-group:hover { background: #fee2e2; border-color: #fca5a5; color: #dc2626; }
+        .idx-grid-group-parts { display: flex; flex-direction: row; gap: 0.4rem; flex-wrap: wrap; min-height: 40px; }
+        .idx-grid-group-parts.empty-drop { border: 2px dashed #d1d5db; border-radius: 6px; padding: 0.4rem; }
+        .idx-part-item {
+            display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.75rem;
+            background: #dbeafe; border: 2px solid #93c5fd; border-radius: 7px;
+            cursor: grab; user-select: none; transition: all 0.15s; font-size: 0.85rem;
+        }
+        .idx-part-item:hover { background: #bfdbfe; }
+        .idx-part-item.dragging { opacity: 0.4; cursor: grabbing; }
+        .idx-part-item.drag-over-item { outline: 2px dashed #2563eb; outline-offset: 2px; }
+        .idx-part-item .drag-handle { color: #6b7280; font-size: 0.85rem; }
+        .idx-part-item .part-name { font-weight: 500; color: #1e40af; }
+        .idx-btn-add-group {
+            margin-top: 0.4rem; background: none; border: 2px dashed #d1d5db; border-radius: 7px;
+            color: #6b7280; cursor: pointer; font-size: 0.8rem; padding: 0.4rem 0.875rem;
+            min-width: unset; transition: all 0.15s; display: block;
+        }
+        .idx-btn-add-group:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+        .idx-grid-hint { font-size: 0.78rem; color: #6b7280; margin-bottom: 0.5rem; }
+        .dimension-inputs { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .dimension-inputs .form-group { flex: 1; min-width: 120px; }
     </style>
 </head>
 <body>
@@ -206,7 +273,71 @@
                     </div>
                 </div>
                 <button type="button" class="add-section-btn" id="add-section">+ Add Voice Part</button>
-                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 0.75rem;">Create Seating Chart →</button>
+
+                <hr class="configure-divider">
+
+                <!-- Voice Part Arrangement -->
+                <div>
+                    <div class="configure-section-header" onclick="toggleConfigureSection('arr-body', 'arr-indicator')">
+                        <h3>Voice Part Arrangement</h3>
+                        <span class="configure-toggle-indicator" id="arr-indicator">▶ Show</span>
+                    </div>
+                    <div id="arr-body" class="configure-section-body" style="display:none;">
+                        <div class="idx-mode-picker">
+                            <label class="idx-mode-option active" id="idx-mode-group-label">
+                                <input type="radio" name="arr_mode" value="group" checked>
+                                <span class="mode-title">Group by section</span>
+                                <span class="mode-desc">Arrange parts left/right and front-to-back</span>
+                            </label>
+                            <label class="idx-mode-option" id="idx-mode-mixed-label">
+                                <input type="radio" name="arr_mode" value="mixed">
+                                <span class="mode-title">Mix voices</span>
+                                <span class="mode-desc">No two adjacent seats share a voice part</span>
+                            </label>
+                        </div>
+                        <div id="idx-grid-ui">
+                            <p class="idx-grid-hint">Drag parts left/right to set column order. Add a row group to stack parts front-to-back.</p>
+                            <div class="idx-part-grid" id="idx-part-grid"></div>
+                            <button type="button" class="idx-btn-add-group" onclick="idxAddGroup()">+ Add front row group</button>
+                        </div>
+                        <div id="idx-mixed-ui" style="display:none;">
+                            <p class="idx-grid-hint">Singers will be scattered so no two adjacent seats share a voice part.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dimensions -->
+                <div style="margin-top: 0.75rem;">
+                    <div class="configure-section-header" onclick="toggleConfigureSection('dim-body', 'dim-indicator')">
+                        <h3>Dimensions</h3>
+                        <span class="configure-toggle-indicator" id="dim-indicator">▶ Show</span>
+                    </div>
+                    <div id="dim-body" class="configure-section-body" style="display:none;">
+                        <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.75rem;">Leave blank for auto-calculation.</p>
+                        <div class="dimension-inputs">
+                            <div class="form-group">
+                                <label for="idx-rows">Number of rows:</label>
+                                <input type="number" id="idx-rows" name="rows" min="1" max="50" placeholder="Auto">
+                            </div>
+                            <div class="form-group">
+                                <label for="idx-max-per-row">Max per row:</label>
+                                <input type="number" id="idx-max-per-row" name="max_per_row" min="1" max="100" placeholder="Auto">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-top:0.75rem;">
+                            <label for="idx-row-sizes">Or seats per row (back to front):</label>
+                            <input type="text" id="idx-row-sizes" name="row_sizes" placeholder="e.g. 16, 14, 12">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden configure fields populated on submit -->
+                <input type="hidden" name="part_grid" id="idx-part-grid-hidden" value="">
+                <input type="hidden" name="part_order" id="idx-part-order-hidden" value="">
+                <input type="hidden" name="mixed" id="idx-mixed-hidden" value="false">
+                <input type="hidden" name="staggered" value="true">
+
+                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1rem;">Generate Chart →</button>
             </form>
         </div>
 
@@ -386,6 +517,8 @@ Jane Doe,Soprano,64.5</pre>
             initSection(section, 3);
             section.querySelector('input[type="text"]').focus();
             updateRemoveButtons();
+            watchPartNameInputs(section);
+            idxSyncGrid();
         }
 
         document.getElementById('add-section').addEventListener('click', addSection);
@@ -395,6 +528,7 @@ Jane Doe,Soprano,64.5</pre>
             if (list.querySelectorAll('.part-section').length > 1) {
                 btn.closest('.part-section').remove();
                 updateRemoveButtons();
+                idxSyncGrid();
             }
         }
 
@@ -431,6 +565,186 @@ Jane Doe,Soprano,64.5</pre>
         // Initialize the first section
         initSection(document.querySelector('.part-section'), 3);
         updateRemoveButtons();
+
+        // ---- Voice Part Arrangement grid (index page) ----
+        const idxGrid = document.getElementById('idx-part-grid');
+        let idxDraggedItem = null;
+
+        function toggleConfigureSection(bodyId, indicatorId) {
+            const body = document.getElementById(bodyId);
+            const indicator = document.getElementById(indicatorId);
+            const open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : '';
+            indicator.textContent = open ? '▶ Show' : '▼ Hide';
+        }
+
+        function idxMakeItem(part) {
+            const item = document.createElement('div');
+            item.className = 'idx-part-item';
+            item.draggable = true;
+            item.dataset.part = part;
+            item.innerHTML = `<span class="drag-handle">&#9776;</span><span class="part-name">${part}</span>`;
+            idxBindItem(item);
+            return item;
+        }
+
+        function idxBindItem(item) {
+            item.addEventListener('dragstart', e => {
+                idxDraggedItem = item;
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                idxGrid.querySelectorAll('.drag-over-item, .drag-target')
+                    .forEach(el => el.classList.remove('drag-over-item', 'drag-target'));
+                idxDraggedItem = null;
+            });
+            item.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (idxDraggedItem && idxDraggedItem !== item) item.classList.add('drag-over-item');
+            });
+            item.addEventListener('dragleave', () => item.classList.remove('drag-over-item'));
+            item.addEventListener('drop', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                item.classList.remove('drag-over-item');
+                if (!idxDraggedItem || idxDraggedItem === item) return;
+                const siblings = Array.from(item.parentNode.querySelectorAll('.idx-part-item'));
+                const di = siblings.indexOf(idxDraggedItem);
+                const ti = siblings.indexOf(item);
+                item.parentNode.insertBefore(idxDraggedItem, di < ti ? item.nextSibling : item);
+            });
+        }
+
+        function idxBindGroup(group) {
+            const partsEl = group.querySelector('.idx-grid-group-parts');
+            partsEl.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (idxDraggedItem && idxDraggedItem.parentNode !== partsEl)
+                    group.classList.add('drag-target');
+            });
+            partsEl.addEventListener('dragleave', e => {
+                if (!partsEl.contains(e.relatedTarget)) group.classList.remove('drag-target');
+            });
+            partsEl.addEventListener('drop', e => {
+                e.preventDefault();
+                group.classList.remove('drag-target');
+                if (idxDraggedItem && idxDraggedItem.parentNode !== partsEl)
+                    partsEl.appendChild(idxDraggedItem);
+            });
+        }
+
+        function idxRefreshLabels() {
+            const groups = Array.from(idxGrid.querySelectorAll('.idx-grid-group'));
+            groups.forEach((group, idx) => {
+                const header = group.querySelector('.idx-grid-group-header');
+                const label = group.querySelector('.idx-grid-group-label');
+                let removeBtn = group.querySelector('.idx-btn-remove-group');
+                if (groups.length === 1) {
+                    label.textContent = 'All rows';
+                    if (removeBtn) removeBtn.remove();
+                } else {
+                    if (!removeBtn) {
+                        removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'idx-btn-remove-group';
+                        removeBtn.textContent = 'Remove';
+                        removeBtn.addEventListener('click', () => idxRemoveGroup(removeBtn));
+                        header.appendChild(removeBtn);
+                    }
+                    label.textContent = idx === 0 ? 'Back rows' : idx === groups.length - 1 ? 'Front rows' : 'Middle rows';
+                }
+            });
+        }
+
+        function idxAddGroup() {
+            const group = document.createElement('div');
+            group.className = 'idx-grid-group';
+            group.innerHTML = `<div class="idx-grid-group-header"><span class="idx-grid-group-label"></span></div><div class="idx-grid-group-parts"></div>`;
+            idxGrid.appendChild(group);
+            idxBindGroup(group);
+            idxRefreshLabels();
+        }
+
+        function idxRemoveGroup(btn) {
+            const group = btn.closest('.idx-grid-group');
+            const allGroups = Array.from(idxGrid.querySelectorAll('.idx-grid-group'));
+            const idx = allGroups.indexOf(group);
+            const dest = allGroups[idx > 0 ? idx - 1 : 1];
+            group.querySelectorAll('.idx-part-item').forEach(item => dest.querySelector('.idx-grid-group-parts').appendChild(item));
+            group.remove();
+            idxRefreshLabels();
+        }
+
+        // Sync grid with current part name inputs
+        function idxSyncGrid() {
+            const partNames = Array.from(document.querySelectorAll('#sections-list input[name="part_name"]'))
+                .map(i => i.value.trim()).filter(Boolean);
+            const existingItems = {};
+            idxGrid.querySelectorAll('.idx-part-item').forEach(item => {
+                existingItems[item.dataset.part] = item;
+            });
+            // Remove items for parts that no longer exist
+            Object.entries(existingItems).forEach(([part, item]) => {
+                if (!partNames.includes(part)) item.remove();
+            });
+            // Add items for new parts (into first group, creating it if needed)
+            partNames.forEach(part => {
+                if (!existingItems[part]) {
+                    let firstGroup = idxGrid.querySelector('.idx-grid-group');
+                    if (!firstGroup) {
+                        firstGroup = document.createElement('div');
+                        firstGroup.className = 'idx-grid-group';
+                        firstGroup.innerHTML = `<div class="idx-grid-group-header"><span class="idx-grid-group-label"></span></div><div class="idx-grid-group-parts"></div>`;
+                        idxGrid.appendChild(firstGroup);
+                        idxBindGroup(firstGroup);
+                    }
+                    firstGroup.querySelector('.idx-grid-group-parts').appendChild(idxMakeItem(part));
+                } else {
+                    // Update label if part name changed (rename in-place)
+                    existingItems[part].querySelector('.part-name').textContent = part;
+                }
+            });
+            idxRefreshLabels();
+        }
+
+        function watchPartNameInputs(section) {
+            section.querySelector('input[name="part_name"]').addEventListener('input', idxSyncGrid);
+        }
+
+        // Mode picker
+        document.querySelectorAll('input[name="arr_mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const isMixed = this.value === 'mixed';
+                document.getElementById('idx-grid-ui').style.display = isMixed ? 'none' : '';
+                document.getElementById('idx-mixed-ui').style.display = isMixed ? '' : 'none';
+                document.getElementById('idx-mode-group-label').classList.toggle('active', !isMixed);
+                document.getElementById('idx-mode-mixed-label').classList.toggle('active', isMixed);
+                document.getElementById('idx-mixed-hidden').value = isMixed ? 'true' : 'false';
+            });
+        });
+
+        // On submit: populate hidden configure fields
+        document.getElementById('roster-form').addEventListener('submit', function() {
+            const isMixed = document.querySelector('input[name="arr_mode"]:checked').value === 'mixed';
+            if (!isMixed) {
+                const groupRows = Array.from(idxGrid.querySelectorAll('.idx-grid-group')).map(g =>
+                    Array.from(g.querySelectorAll('.idx-part-item')).map(i => i.dataset.part).join(',')
+                ).filter(Boolean);
+                document.getElementById('idx-part-grid-hidden').value = groupRows.length > 1 ? groupRows.join(';') : '';
+                document.getElementById('idx-part-order-hidden').value = groupRows.map(r => r.split(',')).flat().join(',');
+            } else {
+                document.getElementById('idx-part-grid-hidden').value = '';
+                const partNames = Array.from(document.querySelectorAll('#sections-list input[name="part_name"]'))
+                    .map(i => i.value.trim()).filter(Boolean);
+                document.getElementById('idx-part-order-hidden').value = partNames.join(',');
+            }
+        }, true); // capture: runs before the existing submit handler
+
+        // Init grid and wire up name inputs on first section
+        idxSyncGrid();
+        watchPartNameInputs(document.querySelector('.part-section'));
     </script>
     {% include 'footer.html' %}
 </body>

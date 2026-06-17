@@ -137,7 +137,8 @@ def configure_post():
                 flash('Please add at least one singer name')
                 return redirect(url_for('index'))
 
-        return show_configure_page(singers)
+        chart_data = generate_chart_from_form(singers=singers)
+        return render_template('edit.html', **chart_data)
 
     except Exception as e:
         flash(f'Error: {str(e)}')
@@ -220,11 +221,17 @@ def load():
         return redirect(url_for('index'))
 
 
-def generate_chart_from_form() -> dict:
-    """Parse form data and generate a new seating chart."""
-    singers_json = request.form.get('singers_data', '')
-    singers_data = json.loads(base64.b64decode(singers_json).decode())
-    singers = [Singer(**s) for s in singers_data]
+def generate_chart_from_form(singers=None) -> dict:
+    """Parse form data and generate a new seating chart.
+
+    If `singers` is provided (already-parsed list of Singer objects), skip
+    decoding singers_data from the form.  This lets configure_post pass
+    pre-parsed singers directly without re-encoding them.
+    """
+    if singers is None:
+        singers_json = request.form.get('singers_data', '')
+        singers_data = json.loads(base64.b64decode(singers_json).decode())
+        singers = [Singer(**s) for s in singers_data]
 
     # Parse part_grid (2D grid layout) or fall back to flat part_order.
     part_grid_str = request.form.get('part_grid', '').strip()
@@ -243,7 +250,10 @@ def generate_chart_from_form() -> dict:
         part_order = [p.strip() for p in part_order_str.split(',') if p.strip()]
 
     if not part_order:
-        raise ValueError('Please specify voice part order')
+        seen = {}
+        for s in singers:
+            seen[s.voice_part] = None
+        part_order = list(seen.keys())
 
     mixed = request.form.get('mixed') == 'true'
 
@@ -305,7 +315,9 @@ def generate_chart_from_form() -> dict:
         'staggered': staggered,
         'curved': curved,
         'aisle_after': aisle_after,
-        'singers_data': request.form.get('singers_data', ''),
+        'singers_data': request.form.get('singers_data', '') or base64.b64encode(
+            json.dumps([{'name': s.name, 'voice_part': s.voice_part, 'height': s.height}
+                        for s in singers]).encode()).decode(),
         'stagger_offsets': stagger_offsets,
         'single_wide_parts': [] if mixed else find_single_wide_parts(chart, part_order),
         'part_grid_str': part_grid_str,
