@@ -102,8 +102,12 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            margin-bottom: 0.75rem;
+            border-radius: 6px;
+            padding: 0.1rem 0.2rem;
+            margin: -0.1rem -0.2rem;
+            transition: background 0.15s;
         }
+        .arrangement-header:hover { background: #f3f4f6; }
         .arrangement-header h3 {
             font-size: 0.9rem;
             font-weight: 600;
@@ -440,30 +444,35 @@
             </div>
         </div>
         <div class="arrangement-panel">
-            <div class="arrangement-header">
+            <div class="arrangement-header" onclick="toggleArrangementPanel()" style="cursor:pointer;">
                 <h3>Voice Part Arrangement</h3>
-                <span style="font-size:0.75rem; color:#9ca3af;">Applying will reset manual seat edits</span>
-                <button type="button" onclick="applyArrangement()" class="btn btn-secondary" style="min-width:unset; font-size:0.8rem; padding:0.3rem 0.75rem; margin-left:auto;">Apply</button>
+                <span id="arr-toggle-indicator" style="font-size:0.8rem; color:#9ca3af; margin-left:auto;">▶ Show</span>
             </div>
-            <div class="mode-picker">
-                <label class="mode-option {% if not mixed %}active{% endif %}" id="arr-mode-group-label">
-                    <input type="radio" name="arr_mode" value="group" {% if not mixed %}checked{% endif %}>
-                    <span class="mode-title">Group by section</span>
-                    <span class="mode-desc">Arrange parts left/right and front-to-back</span>
-                </label>
-                <label class="mode-option {% if mixed %}active{% endif %}" id="arr-mode-mixed-label">
-                    <input type="radio" name="arr_mode" value="mixed" {% if mixed %}checked{% endif %}>
-                    <span class="mode-title">Mix voices</span>
-                    <span class="mode-desc">No two adjacent seats share a voice part</span>
-                </label>
-            </div>
-            <div id="arr-grid-ui"{% if mixed %} style="display:none;"{% endif %}>
-                <p class="grid-hint">Drag parts left/right to set column order. Add a row group to stack parts front-to-back — top group stands in back, bottom group in front.</p>
-                <div class="part-grid" id="arr-part-grid"></div>
-                <button type="button" class="btn-add-group" onclick="arrAddGroup()">+ Add front row group</button>
-            </div>
-            <div id="arr-mixed-ui"{% if not mixed %} style="display:none;"{% endif %}>
-                <p class="grid-hint">Singers will be scattered so no two adjacent seats share a voice part. Column proportions are set automatically.</p>
+            <div id="arr-panel-body" style="display:none; margin-top:0.75rem;">
+                <div class="mode-picker">
+                    <label class="mode-option {% if not mixed %}active{% endif %}" id="arr-mode-group-label">
+                        <input type="radio" name="arr_mode" value="group" {% if not mixed %}checked{% endif %}>
+                        <span class="mode-title">Group by section</span>
+                        <span class="mode-desc">Arrange parts left/right and front-to-back</span>
+                    </label>
+                    <label class="mode-option {% if mixed %}active{% endif %}" id="arr-mode-mixed-label">
+                        <input type="radio" name="arr_mode" value="mixed" {% if mixed %}checked{% endif %}>
+                        <span class="mode-title">Mix voices</span>
+                        <span class="mode-desc">No two adjacent seats share a voice part</span>
+                    </label>
+                </div>
+                <div id="arr-grid-ui"{% if mixed %} style="display:none;"{% endif %}>
+                    <p class="grid-hint">Drag parts left/right to set column order. Add a row group to stack parts front-to-back — top group stands in back, bottom group in front.</p>
+                    <div class="part-grid" id="arr-part-grid"></div>
+                    <button type="button" class="btn-add-group" onclick="arrAddGroup()">+ Add front row group</button>
+                </div>
+                <div id="arr-mixed-ui"{% if not mixed %} style="display:none;"{% endif %}>
+                    <p class="grid-hint">Singers will be scattered so no two adjacent seats share a voice part. Column proportions are set automatically.</p>
+                </div>
+                <div style="margin-top:0.75rem; display:flex; align-items:center; gap:0.75rem;">
+                    <button type="button" onclick="applyArrangement()" class="btn btn-secondary" style="min-width:unset; font-size:0.85rem; padding:0.4rem 1rem;">Apply</button>
+                    <span style="font-size:0.75rem; color:#9ca3af;">Resets manual seat edits</span>
+                </div>
             </div>
         </div>
         {% endif %}
@@ -1131,6 +1140,14 @@
         }
 
         // --- Voice part arrangement panel ---
+        function toggleArrangementPanel() {
+            const body = document.getElementById('arr-panel-body');
+            const indicator = document.getElementById('arr-toggle-indicator');
+            const open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : '';
+            indicator.textContent = open ? '▶ Show' : '▼ Hide';
+        }
+
         const arrGrid = document.getElementById('arr-part-grid');
         let arrDraggedItem = null;
 
