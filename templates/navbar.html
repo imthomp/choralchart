@@ -1,5 +1,32 @@
+<script>
+    (function() {
+        var t = localStorage.getItem('choralchart-theme');
+        if (t) document.documentElement.setAttribute('data-theme', t);
+    })();
+</script>
 <nav class="navbar">
     <a href="{{ url_for('index') }}" class="nav-brand">
         <img src="{{ url_for('static', filename='favicon.svg') }}" alt="" width="24" height="24" style="vertical-align: middle; margin-right: 0.4rem;">ChoralChart
     </a>
+    <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode">◑</button>
 </nav>
+<script>
+    function toggleTheme() {
+        var html = document.documentElement;
+        var current = html.getAttribute('data-theme') ||
+            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        var next = current === 'dark' ? 'light' : 'dark';
+        html.setAttribute('data-theme', next);
+        localStorage.setItem('choralchart-theme', next);
+        updateThemeIcon();
+    }
+    function updateThemeIcon() {
+        var btn = document.getElementById('theme-toggle-btn');
+        if (!btn) return;
+        var saved = localStorage.getItem('choralchart-theme');
+        var isDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        btn.textContent = isDark ? '☀' : '◑';
+        btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+    }
+    updateThemeIcon();
+</script>
