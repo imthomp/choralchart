@@ -78,6 +78,18 @@ These are confirmed gaps in the current implementation, not feature requests.
 
 ---
 
+## Accounts — Phased Approach
+
+Don't add accounts until localStorage soft-identity is in place and the ensembles feature becomes real. Zero-friction onboarding is a competitive advantage — don't gate it.
+
+| Phase | Branch | What | Effort |
+|-------|--------|------|--------|
+| 1 | `feature/local-chart-list` | localStorage "your charts" list on home page — remember chart IDs locally, no login required | Low |
+| 2 | `feature/ensembles` | Ensemble grouping (see High Impact) — the point where soft identity stops being enough | High |
+| 3 | `feature/accounts` | Real accounts with Google OAuth only — no passwords. Migrate localStorage chart list into account on first sign-in | High |
+
+---
+
 ## To Reconsider
 
 | Area | Note |
