@@ -1,21 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <style>
-    .bg { fill: #f0f2f5; }
-    .beam { fill: #000000; }
-    .stem { stroke: #000000; }
-    .note { fill: #2563eb; }
-    @media (prefers-color-scheme: dark) {
-      .bg { fill: #1f2937; }
-      .beam { fill: #ffffff; }
-      .stem { stroke: #ffffff; }
-      .note { fill: #3b82f6; }
-    }
-  </style>
-  <rect width="32" height="32" rx="6" class="bg"/>
-  <polygon points="12.5,2.5 25.5,6.5 25.5,10.5 12.5,6.5" class="beam"/>
-  <line x1="13" y1="6.5" x2="13" y2="14.5" class="stem" stroke-width="1" stroke-linecap="square"/>
-  <line x1="25" y1="10.5" x2="25" y2="20.5" class="stem" stroke-width="1" stroke-linecap="square"/>
-  <text font-family="'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="15" class="note">
+  <rect width="32" height="32" rx="6" fill="#f0f2f5"/>
+  <polygon points="12.5,2.5 25.5,6.5 25.5,10.5 12.5,6.5" fill="#000000"/>
+  <line x1="13" y1="6.5" x2="13" y2="14.5" stroke="#000000" stroke-width="1" stroke-linecap="square"/>
+  <line x1="25" y1="10.5" x2="25" y2="20.5" stroke="#000000" stroke-width="1" stroke-linecap="square"/>
+  <text font-family="'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="15" fill="#2563eb">
     <tspan x="4.79" y="23.5">C</tspan>
     <tspan x="16.79" y="29.5">C</tspan>
   </text>

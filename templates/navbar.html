@@ -20,22 +20,53 @@
     <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode">◑</button>
 </nav>
 <script>
+    function _isDark() {
+        var saved = localStorage.getItem('choralchart-theme');
+        return saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
+
+    function updateFavicon() {
+        var dark = _isDark();
+        var bg    = dark ? '#1f2937' : '#f0f2f5';
+        var beam  = dark ? '#ffffff' : '#000000';
+        var note  = dark ? '#3b82f6' : '#2563eb';
+        var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+            + '<rect width="32" height="32" rx="6" fill="' + bg + '"/>'
+            + '<polygon points="12.5,2.5 25.5,6.5 25.5,10.5 12.5,6.5" fill="' + beam + '"/>'
+            + '<line x1="13" y1="6.5" x2="13" y2="14.5" stroke="' + beam + '" stroke-width="1" stroke-linecap="square"/>'
+            + '<line x1="25" y1="10.5" x2="25" y2="20.5" stroke="' + beam + '" stroke-width="1" stroke-linecap="square"/>'
+            + '<text font-family="\'Segoe UI\', system-ui, sans-serif" font-weight="700" font-size="15" fill="' + note + '">'
+            + '<tspan x="4.79" y="23.5">C</tspan>'
+            + '<tspan x="16.79" y="29.5">C</tspan>'
+            + '</text></svg>';
+        var link = document.querySelector('link[rel="icon"]');
+        if (link) link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+    }
+
     function toggleTheme() {
         var html = document.documentElement;
-        var current = html.getAttribute('data-theme') ||
-            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        var next = current === 'dark' ? 'light' : 'dark';
+        var next = _isDark() ? 'light' : 'dark';
         html.setAttribute('data-theme', next);
         localStorage.setItem('choralchart-theme', next);
         updateThemeIcon();
+        updateFavicon();
     }
+
     function updateThemeIcon() {
         var btn = document.getElementById('theme-toggle-btn');
         if (!btn) return;
-        var saved = localStorage.getItem('choralchart-theme');
-        var isDark = saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches);
-        btn.textContent = isDark ? '☀' : '◑';
-        btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+        var dark = _isDark();
+        btn.textContent = dark ? '☀' : '◑';
+        btn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
     }
+
     updateThemeIcon();
+    updateFavicon();
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+        if (!localStorage.getItem('choralchart-theme')) {
+            updateThemeIcon();
+            updateFavicon();
+        }
+    });
 </script>
