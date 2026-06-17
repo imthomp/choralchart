@@ -918,6 +918,30 @@ Jane Doe,Soprano,64.5</pre>
         // Init grid and wire up name inputs on first section
         idxSyncGrid();
         watchPartNameInputs(document.querySelector('.part-section'));
+
+        // Sync dimension inputs between Enter Roster and Random forms
+        [['idx-rows', 'rand-rows'], ['idx-max-per-row', 'rand-max-per-row'], ['idx-row-sizes', 'rand-row-sizes']]
+            .forEach(([a, b]) => {
+                const elA = document.getElementById(a), elB = document.getElementById(b);
+                if (elA && elB) {
+                    elA.addEventListener('input', () => elB.value = elA.value);
+                    elB.addEventListener('input', () => elA.value = elB.value);
+                }
+            });
+
+        // Sync arrangement mode radio between the two forms
+        document.querySelectorAll('#roster-form input[name="arr_mode"]').forEach(r => {
+            r.addEventListener('change', function() {
+                const match = document.querySelector(`#random-form input[name="arr_mode"][value="${this.value}"]`);
+                if (match && !match.checked) { match.checked = true; match.dispatchEvent(new Event('change')); }
+            });
+        });
+        document.querySelectorAll('#random-form input[name="arr_mode"]').forEach(r => {
+            r.addEventListener('change', function() {
+                const match = document.querySelector(`#roster-form input[name="arr_mode"][value="${this.value}"]`);
+                if (match && !match.checked) { match.checked = true; match.dispatchEvent(new Event('change')); }
+            });
+        });
     </script>
     {% include 'footer.html' %}
 </body>
