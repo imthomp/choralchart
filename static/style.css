@@ -229,7 +229,7 @@ button, .button {
     color: white;
 }
 
-button:hover, .button:hover {
+.button:hover {
     background-color: #1d4ed8;
 }
 

@@ -4,7 +4,8 @@ Tests for app.py — utility functions and Flask routes.
 import base64
 import json
 import pytest
-from app import app as flask_app, parse_name_line, _parse_height, parse_csv
+from app import app as flask_app
+from parsing import parse_name_line, _parse_height, parse_csv
 
 
 # ---------------------------------------------------------------------------

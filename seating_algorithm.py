@@ -1,8 +1,9 @@
 """
-Seating algorithm for choir chart generation.
-Places singers in straight rows based on voice part and height.
+Seating algorithm and chart serialization for ChoralChart.
 """
 
+import base64
+import json
 import math
 from dataclasses import dataclass
 from typing import List, Optional
@@ -740,3 +741,78 @@ def generate_random_roster(
                 singers.append(Singer(name=name, voice_part=part, height=height))
 
     return singers
+
+
+# ---------------------------------------------------------------------------
+# Chart serialization
+# ---------------------------------------------------------------------------
+
+def encode_chart(chart: List[List['Seat']]) -> str:
+    """Encode a chart to a base64 JSON string for form/file storage."""
+    data = [
+        [
+            {'row': seat.row, 'position': seat.position,
+             'singer': {'name': seat.singer.name, 'voice_part': seat.singer.voice_part,
+                        'height': seat.singer.height} if seat.singer else None}
+            for seat in row
+        ]
+        for row in chart
+    ]
+    return base64.b64encode(json.dumps(data).encode()).decode()
+
+
+def decode_chart(chart_json: str) -> List[List['Seat']]:
+    """Decode a chart from a base64 JSON string."""
+    data = json.loads(base64.b64decode(chart_json).decode())
+    return [
+        [
+            Seat(
+                row=seat_data['row'],
+                position=seat_data['position'],
+                singer=Singer(**seat_data['singer']) if seat_data.get('singer') else None,
+            )
+            for seat_data in row_data
+        ]
+        for row_data in data
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Chart analysis
+# ---------------------------------------------------------------------------
+
+def find_single_wide_parts(chart: List[List['Seat']], part_order: List[str]) -> List[str]:
+    """Return parts that are only one seat wide in every row where they appear."""
+    if not chart or not part_order:
+        return []
+    part_set = set(part_order)
+    max_width = {part: 0 for part in part_order}
+    for row in chart:
+        filled = [seat for seat in row if seat.singer and seat.singer.voice_part in part_set]
+        i = 0
+        while i < len(filled):
+            part = filled[i].singer.voice_part
+            run = 1
+            while i + run < len(filled) and filled[i + run].singer.voice_part == part:
+                run += 1
+            if run > max_width[part]:
+                max_width[part] = run
+            i += run
+    return [part for part in part_order if max_width[part] == 1]
+
+
+def calculate_stagger_offsets(chart: List[List['Seat']]) -> List[bool]:
+    """Calculate which rows need a stagger offset for a correct brick pattern.
+
+    Rows with the same singer-count parity as the row behind them must be
+    manually offset; different-parity rows are naturally offset by centering.
+    """
+    if not chart:
+        return []
+    offsets = [False]
+    for i in range(1, len(chart)):
+        current_count = sum(1 for seat in chart[i] if seat.singer)
+        prev_count = sum(1 for seat in chart[i - 1] if seat.singer)
+        same_parity = (current_count % 2) == (prev_count % 2)
+        offsets.append(not offsets[i - 1] if same_parity else offsets[i - 1])
+    return offsets

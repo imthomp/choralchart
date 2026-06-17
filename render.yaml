@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: seating-chart-generator
-    runtime: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app
-    plan: free
