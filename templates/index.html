@@ -229,6 +229,33 @@
         .idx-grid-hint { font-size: 0.78rem; color: #6b7280; margin-bottom: 0.5rem; }
         .dimension-inputs { display: flex; gap: 1rem; flex-wrap: wrap; }
         .dimension-inputs .form-group { flex: 1; min-width: 120px; }
+        /* Tabs */
+        .tab-bar {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin: -2rem -2rem 1.5rem;
+            padding: 0 2rem;
+        }
+        .tab-btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            background: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            min-width: unset;
+            transition: color 0.15s, border-color 0.15s;
+            white-space: nowrap;
+        }
+        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
+        .tab-btn:hover:not(.active) { color: #374151; }
+        @media (max-width: 768px) {
+            .tab-bar { margin: -1.5rem -1.5rem 1.5rem; padding: 0 1.5rem; }
+            .tab-btn { padding: 0.65rem 0.75rem; font-size: 0.8rem; }
+        }
     </style>
 </head>
 <body>
@@ -250,156 +277,217 @@
             <p class="subtitle">Enter your roster or generate a random one to get started.</p>
         </div>
 
-        <!-- Primary: Enter Roster -->
         <div class="card" style="margin-top: 1.5rem;">
-            <h2>Enter Your Roster</h2>
-            <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.9rem;">Add singers by voice part. Height is optional but enables taller-in-back sorting.</p>
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('manual', this)">Enter Roster</button>
+                <button class="tab-btn" onclick="switchTab('random', this)">Random Roster</button>
+                <button class="tab-btn" onclick="switchTab('upload', this)">Upload</button>
+            </div>
 
-            <form id="roster-form" action="{{ url_for('configure_post') }}" method="post">
-                <input type="hidden" name="entry_type" value="manual">
-                <div id="sections-list">
-                    <div class="part-section">
-                        <div class="part-section-header">
-                            <input type="text" name="part_name" placeholder="Voice part (e.g. Soprano)" required>
-                            <button type="button" class="btn-remove-row" onclick="removeSection(this)">✕</button>
-                        </div>
-                        <div class="singer-rows"></div>
-                        <div class="section-footer">
-                            <button type="button" class="add-singer-btn" onclick="addSingerRow(this)">+ Add singer</button>
-                            <button type="button" class="bulk-toggle-btn" onclick="toggleBulk(this)">paste bulk…</button>
-                        </div>
-                        <textarea class="bulk-area" style="display:none;" placeholder="One name per line. Optionally add height: Jane Smith, 5'4&quot;"></textarea>
-                        <textarea class="names-list" name="part_names_list" style="display:none;"></textarea>
-                    </div>
-                </div>
-                <button type="button" class="add-section-btn" id="add-section">+ Add Voice Part</button>
+            <!-- TAB: Enter Roster -->
+            <div id="tab-manual" class="tab-panel">
+                <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.9rem;">Add singers by voice part. Height is optional but enables taller-in-back sorting.</p>
 
-                <hr class="configure-divider">
-
-                <!-- Voice Part Arrangement -->
-                <div>
-                    <div class="configure-section-header" onclick="toggleConfigureSection('arr-body', 'arr-indicator')">
-                        <h3>Voice Part Arrangement</h3>
-                        <span class="configure-toggle-indicator" id="arr-indicator">▶ Show</span>
-                    </div>
-                    <div id="arr-body" class="configure-section-body" style="display:none;">
-                        <div class="idx-mode-picker">
-                            <label class="idx-mode-option active" id="idx-mode-group-label">
-                                <input type="radio" name="arr_mode" value="group" checked>
-                                <span class="mode-title">Group by section</span>
-                                <span class="mode-desc">Arrange parts left/right and front-to-back</span>
-                            </label>
-                            <label class="idx-mode-option" id="idx-mode-mixed-label">
-                                <input type="radio" name="arr_mode" value="mixed">
-                                <span class="mode-title">Mix voices</span>
-                                <span class="mode-desc">No two adjacent seats share a voice part</span>
-                            </label>
-                        </div>
-                        <div id="idx-grid-ui">
-                            <p class="idx-grid-hint">Drag parts left/right to set column order. Add a row group to stack parts front-to-back.</p>
-                            <div class="idx-part-grid" id="idx-part-grid"></div>
-                            <button type="button" class="idx-btn-add-group" onclick="idxAddGroup()">+ Add front row group</button>
-                        </div>
-                        <div id="idx-mixed-ui" style="display:none;">
-                            <p class="idx-grid-hint">Singers will be scattered so no two adjacent seats share a voice part.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dimensions -->
-                <div style="margin-top: 0.75rem;">
-                    <div class="configure-section-header" onclick="toggleConfigureSection('dim-body', 'dim-indicator')">
-                        <h3>Dimensions</h3>
-                        <span class="configure-toggle-indicator" id="dim-indicator">▶ Show</span>
-                    </div>
-                    <div id="dim-body" class="configure-section-body" style="display:none;">
-                        <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.75rem;">Leave blank for auto-calculation.</p>
-                        <div class="dimension-inputs">
-                            <div class="form-group">
-                                <label for="idx-rows">Number of rows:</label>
-                                <input type="number" id="idx-rows" name="rows" min="1" max="50" placeholder="Auto">
+                <form id="roster-form" action="{{ url_for('configure_post') }}" method="post">
+                    <input type="hidden" name="entry_type" value="manual">
+                    <div id="sections-list">
+                        <div class="part-section">
+                            <div class="part-section-header">
+                                <input type="text" name="part_name" placeholder="Voice part (e.g. Soprano)" required>
+                                <button type="button" class="btn-remove-row" onclick="removeSection(this)">✕</button>
                             </div>
-                            <div class="form-group">
-                                <label for="idx-max-per-row">Max per row:</label>
-                                <input type="number" id="idx-max-per-row" name="max_per_row" min="1" max="100" placeholder="Auto">
+                            <div class="singer-rows"></div>
+                            <div class="section-footer">
+                                <button type="button" class="add-singer-btn" onclick="addSingerRow(this)">+ Add singer</button>
+                                <button type="button" class="bulk-toggle-btn" onclick="toggleBulk(this)">paste bulk…</button>
+                            </div>
+                            <textarea class="bulk-area" style="display:none;" placeholder="One name per line. Optionally add height: Jane Smith, 5'4&quot;"></textarea>
+                            <textarea class="names-list" name="part_names_list" style="display:none;"></textarea>
+                        </div>
+                    </div>
+                    <button type="button" class="add-section-btn" id="add-section">+ Add Voice Part</button>
+
+                    <hr class="configure-divider">
+
+                    <div>
+                        <div class="configure-section-header" onclick="toggleConfigureSection('arr-body', 'arr-indicator')">
+                            <h3>Voice Part Arrangement</h3>
+                            <span class="configure-toggle-indicator" id="arr-indicator">▶ Show</span>
+                        </div>
+                        <div id="arr-body" class="configure-section-body" style="display:none;">
+                            <div class="idx-mode-picker">
+                                <label class="idx-mode-option active" id="idx-mode-group-label">
+                                    <input type="radio" name="arr_mode" value="group" checked>
+                                    <span class="mode-title">Group by section</span>
+                                    <span class="mode-desc">Arrange parts left/right and front-to-back</span>
+                                </label>
+                                <label class="idx-mode-option" id="idx-mode-mixed-label">
+                                    <input type="radio" name="arr_mode" value="mixed">
+                                    <span class="mode-title">Mix voices</span>
+                                    <span class="mode-desc">No two adjacent seats share a voice part</span>
+                                </label>
+                            </div>
+                            <div id="idx-grid-ui">
+                                <p class="idx-grid-hint">Drag parts left/right to set column order. Add a row group to stack parts front-to-back.</p>
+                                <div class="idx-part-grid" id="idx-part-grid"></div>
+                                <button type="button" class="idx-btn-add-group" onclick="idxAddGroup()">+ Add front row group</button>
+                            </div>
+                            <div id="idx-mixed-ui" style="display:none;">
+                                <p class="idx-grid-hint">Singers will be scattered so no two adjacent seats share a voice part.</p>
                             </div>
                         </div>
-                        <div class="form-group" style="margin-top:0.75rem;">
-                            <label for="idx-row-sizes">Or seats per row (back to front):</label>
-                            <input type="text" id="idx-row-sizes" name="row_sizes" placeholder="e.g. 16, 14, 12">
+                    </div>
+
+                    <div style="margin-top: 0.75rem;">
+                        <div class="configure-section-header" onclick="toggleConfigureSection('dim-body', 'dim-indicator')">
+                            <h3>Dimensions</h3>
+                            <span class="configure-toggle-indicator" id="dim-indicator">▶ Show</span>
+                        </div>
+                        <div id="dim-body" class="configure-section-body" style="display:none;">
+                            <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.75rem;">Leave blank for auto-calculation.</p>
+                            <div class="dimension-inputs">
+                                <div class="form-group">
+                                    <label for="idx-rows">Number of rows:</label>
+                                    <input type="number" id="idx-rows" name="rows" min="1" max="50" placeholder="Auto">
+                                </div>
+                                <div class="form-group">
+                                    <label for="idx-max-per-row">Max per row:</label>
+                                    <input type="number" id="idx-max-per-row" name="max_per_row" min="1" max="100" placeholder="Auto">
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-top:0.75rem;">
+                                <label for="idx-row-sizes">Or seats per row (back to front):</label>
+                                <input type="text" id="idx-row-sizes" name="row_sizes" placeholder="e.g. 16, 14, 12">
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Hidden configure fields populated on submit -->
-                <input type="hidden" name="part_grid" id="idx-part-grid-hidden" value="">
-                <input type="hidden" name="part_order" id="idx-part-order-hidden" value="">
-                <input type="hidden" name="mixed" id="idx-mixed-hidden" value="false">
-                <input type="hidden" name="staggered" value="true">
+                    <input type="hidden" name="part_grid" id="idx-part-grid-hidden" value="">
+                    <input type="hidden" name="part_order" id="idx-part-order-hidden" value="">
+                    <input type="hidden" name="mixed" id="idx-mixed-hidden" value="false">
+                    <input type="hidden" name="staggered" value="true">
 
-                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1rem;">Generate Chart →</button>
-            </form>
-        </div>
-
-        <!-- Secondary: Random roster -->
-        <div class="card" style="margin-top: 1.5rem;">
-            <h2>Try a Random Roster</h2>
-            <p>Generate placeholder singers to explore layout options.</p>
-
-            <form action="{{ url_for('configure_post') }}" method="post" class="upload-form">
-                <input type="hidden" name="entry_type" value="random">
-                <div class="form-group">
-                    <label for="num_singers">Number of singers:</label>
-                    <input type="number" id="num_singers" name="num_singers" placeholder="40" min="1" max="500">
-                </div>
-                <div class="form-group">
-                    <label for="parts">Voice parts (comma-separated):</label>
-                    <input type="text" id="parts" name="parts" placeholder="Soprano, Alto, Tenor, Bass">
-                </div>
-                <button type="submit" class="btn btn-primary btn-full">Generate Random Roster</button>
-            </form>
-        </div>
-
-        <!-- Load saved chart -->
-        <details class="advanced">
-            <summary>Load a saved chart</summary>
-            <div class="card" style="margin-top: 0.5rem;">
-                <p>Open a <strong>.choralchart</strong> file you previously saved from the editor.</p>
-                <form action="{{ url_for('load') }}" method="post" enctype="multipart/form-data" class="upload-form">
-                    <div class="file-input-wrapper">
-                        <input type="file" name="file" id="chart-file" accept=".choralchart,.json" required>
-                        <label for="chart-file" class="file-label">Choose .choralchart file...</label>
-                    </div>
-                    <button type="submit" class="btn btn-secondary btn-full">Load Chart</button>
+                    <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1rem;">Generate Chart →</button>
                 </form>
             </div>
-        </details>
 
-        <!-- Advanced: CSV upload -->
-        <details class="advanced">
-            <summary>Advanced: Upload a CSV file</summary>
-            <div class="card" style="margin-top: 0.5rem;">
-                <p>CSV or Excel file with columns: <strong>name</strong>, <strong>voice_part</strong>, <strong>height</strong> (inches).</p>
-                <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" class="upload-form">
-                    <div class="file-input-wrapper">
-                        <input type="file" name="file" id="file" accept=".csv,.xlsx" required>
-                        <label for="file" class="file-label">Choose CSV or Excel file...</label>
+            <!-- TAB: Random Roster -->
+            <div id="tab-random" class="tab-panel" style="display:none">
+                <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.9rem;">Generate placeholder singers to explore layout options.</p>
+
+                <form id="random-form" action="{{ url_for('configure_post') }}" method="post">
+                    <input type="hidden" name="entry_type" value="random">
+                    <div class="form-group">
+                        <label for="num_singers">Number of singers:</label>
+                        <input type="number" id="num_singers" name="num_singers" placeholder="40" min="1" max="500">
                     </div>
-                    <button type="submit" class="btn btn-secondary btn-full">Upload & Continue</button>
+                    <div class="form-group" style="margin-top: 0.75rem;">
+                        <label for="parts">Voice parts (comma-separated):</label>
+                        <input type="text" id="parts" name="parts" placeholder="Soprano, Alto, Tenor, Bass">
+                    </div>
+
+                    <hr class="configure-divider">
+
+                    <div>
+                        <div class="configure-section-header" onclick="toggleConfigureSection('rand-arr-body', 'rand-arr-indicator')">
+                            <h3>Voice Part Arrangement</h3>
+                            <span class="configure-toggle-indicator" id="rand-arr-indicator">▶ Show</span>
+                        </div>
+                        <div id="rand-arr-body" class="configure-section-body" style="display:none;">
+                            <div class="idx-mode-picker">
+                                <label class="idx-mode-option active" id="rand-mode-group-label">
+                                    <input type="radio" name="arr_mode" value="group" checked>
+                                    <span class="mode-title">Group by section</span>
+                                    <span class="mode-desc">Arrange parts left/right and front-to-back</span>
+                                </label>
+                                <label class="idx-mode-option" id="rand-mode-mixed-label">
+                                    <input type="radio" name="arr_mode" value="mixed">
+                                    <span class="mode-title">Mix voices</span>
+                                    <span class="mode-desc">No two adjacent seats share a voice part</span>
+                                </label>
+                            </div>
+                            <div id="rand-grid-ui">
+                                <p class="idx-grid-hint">Type voice parts above to populate. Drag chips to reorder.</p>
+                                <div class="idx-part-grid" id="rand-part-grid"></div>
+                                <button type="button" class="idx-btn-add-group" onclick="randAddGroup()">+ Add front row group</button>
+                            </div>
+                            <div id="rand-mixed-ui" style="display:none;">
+                                <p class="idx-grid-hint">Singers will be scattered so no two adjacent seats share a voice part.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 0.75rem;">
+                        <div class="configure-section-header" onclick="toggleConfigureSection('rand-dim-body', 'rand-dim-indicator')">
+                            <h3>Dimensions</h3>
+                            <span class="configure-toggle-indicator" id="rand-dim-indicator">▶ Show</span>
+                        </div>
+                        <div id="rand-dim-body" class="configure-section-body" style="display:none;">
+                            <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.75rem;">Leave blank for auto-calculation.</p>
+                            <div class="dimension-inputs">
+                                <div class="form-group">
+                                    <label for="rand-rows">Number of rows:</label>
+                                    <input type="number" id="rand-rows" name="rows" min="1" max="50" placeholder="Auto">
+                                </div>
+                                <div class="form-group">
+                                    <label for="rand-max-per-row">Max per row:</label>
+                                    <input type="number" id="rand-max-per-row" name="max_per_row" min="1" max="100" placeholder="Auto">
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-top:0.75rem;">
+                                <label for="rand-row-sizes">Or seats per row (back to front):</label>
+                                <input type="text" id="rand-row-sizes" name="row_sizes" placeholder="e.g. 16, 14, 12">
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="part_grid" id="rand-part-grid-hidden" value="">
+                    <input type="hidden" name="part_order" id="rand-part-order-hidden" value="">
+                    <input type="hidden" name="mixed" id="rand-mixed-hidden" value="false">
+                    <input type="hidden" name="staggered" value="true">
+
+                    <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1rem;">Generate Chart →</button>
                 </form>
-                <div class="example-csv">
-                    <h4>Example</h4>
-                    <pre>name,voice_part,height
+            </div>
+
+            <!-- TAB: Upload -->
+            <div id="tab-upload" class="tab-panel" style="display:none">
+                <div>
+                    <h3 style="margin-bottom: 0.4rem;">Load a saved chart</h3>
+                    <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.9rem;">Open a <strong>.choralchart</strong> file you previously saved from the editor.</p>
+                    <form action="{{ url_for('load') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                        <div class="file-input-wrapper">
+                            <input type="file" name="file" id="chart-file" accept=".choralchart,.json" required>
+                            <label for="chart-file" class="file-label">Choose .choralchart file...</label>
+                        </div>
+                        <button type="submit" class="btn btn-secondary btn-full">Load Chart</button>
+                    </form>
+                </div>
+                <hr class="configure-divider">
+                <div>
+                    <h3 style="margin-bottom: 0.4rem;">Upload a spreadsheet</h3>
+                    <p style="margin-bottom: 0.75rem; color: #6b7280; font-size: 0.9rem;">CSV or Excel file with columns: <strong>name</strong>, <strong>voice_part</strong>, <strong>height</strong> (inches).</p>
+                    <form action="{{ url_for('upload') }}" method="post" enctype="multipart/form-data" class="upload-form">
+                        <div class="file-input-wrapper">
+                            <input type="file" name="file" id="file" accept=".csv,.xlsx" required>
+                            <label for="file" class="file-label">Choose CSV or Excel file...</label>
+                        </div>
+                        <button type="submit" class="btn btn-secondary btn-full">Upload & Continue</button>
+                    </form>
+                    <div class="example-csv">
+                        <h4>Example</h4>
+                        <pre>name,voice_part,height
 John Smith,Tenor 1,72
 Jane Doe,Soprano,64.5</pre>
-                    <p style="margin-top:0.5rem; font-size:0.8rem; color:#6b7280;">Download sample rosters:
-                        <a href="{{ url_for('static', filename='samples/satb_choir.csv') }}" download>SATB choir (40)</a> ·
-                        <a href="{{ url_for('static', filename='samples/mens_chorus.csv') }}" download>Men's chorus (20)</a> ·
-                        <a href="{{ url_for('static', filename='samples/womens_chorus.csv') }}" download>Women's chorus (20)</a>
-                    </p>
+                        <p style="margin-top:0.5rem; font-size:0.8rem; color:#6b7280;">Download sample rosters:
+                            <a href="{{ url_for('static', filename='samples/satb_choir.csv') }}" download>SATB choir (40)</a> ·
+                            <a href="{{ url_for('static', filename='samples/mens_chorus.csv') }}" download>Men's chorus (20)</a> ·
+                            <a href="{{ url_for('static', filename='samples/womens_chorus.csv') }}" download>Women's chorus (20)</a>
+                        </p>
+                    </div>
                 </div>
             </div>
-        </details>
+        </div>
     </div>
 
     <script>
@@ -713,8 +801,16 @@ Jane Doe,Soprano,64.5</pre>
             section.querySelector('input[name="part_name"]').addEventListener('input', idxSyncGrid);
         }
 
-        // Mode picker
-        document.querySelectorAll('input[name="arr_mode"]').forEach(radio => {
+        // Tab switching
+        function switchTab(name, btn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+            document.getElementById('tab-' + name).style.display = '';
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // Mode picker — manual form
+        document.querySelectorAll('#roster-form input[name="arr_mode"]').forEach(radio => {
             radio.addEventListener('change', function() {
                 const isMixed = this.value === 'mixed';
                 document.getElementById('idx-grid-ui').style.display = isMixed ? 'none' : '';
@@ -725,9 +821,9 @@ Jane Doe,Soprano,64.5</pre>
             });
         });
 
-        // On submit: populate hidden configure fields
+        // On submit: populate hidden configure fields (manual form)
         document.getElementById('roster-form').addEventListener('submit', function() {
-            const isMixed = document.querySelector('input[name="arr_mode"]:checked').value === 'mixed';
+            const isMixed = document.querySelector('#roster-form input[name="arr_mode"]:checked').value === 'mixed';
             if (!isMixed) {
                 const groupRows = Array.from(idxGrid.querySelectorAll('.idx-grid-group')).map(g =>
                     Array.from(g.querySelectorAll('.idx-part-item')).map(i => i.dataset.part).join(',')
@@ -740,7 +836,166 @@ Jane Doe,Soprano,64.5</pre>
                     .map(i => i.value.trim()).filter(Boolean);
                 document.getElementById('idx-part-order-hidden').value = partNames.join(',');
             }
-        }, true); // capture: runs before the existing submit handler
+        }, true);
+
+        // ---- Random Roster arrangement grid ----
+        const randGrid = document.getElementById('rand-part-grid');
+        let randDraggedItem = null;
+
+        function randMakeItem(part) {
+            const item = document.createElement('div');
+            item.className = 'idx-part-item';
+            item.draggable = true;
+            item.dataset.part = part;
+            item.innerHTML = `<span class="drag-handle">&#9776;</span><span class="part-name">${part}</span>`;
+            randBindItem(item);
+            return item;
+        }
+
+        function randBindItem(item) {
+            item.addEventListener('dragstart', e => {
+                randDraggedItem = item;
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                randGrid.querySelectorAll('.drag-over-item, .drag-target')
+                    .forEach(el => el.classList.remove('drag-over-item', 'drag-target'));
+                randDraggedItem = null;
+            });
+            item.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (randDraggedItem && randDraggedItem !== item) item.classList.add('drag-over-item');
+            });
+            item.addEventListener('dragleave', () => item.classList.remove('drag-over-item'));
+            item.addEventListener('drop', e => {
+                e.preventDefault();
+                e.stopPropagation();
+                item.classList.remove('drag-over-item');
+                if (!randDraggedItem || randDraggedItem === item) return;
+                const siblings = Array.from(item.parentNode.querySelectorAll('.idx-part-item'));
+                const di = siblings.indexOf(randDraggedItem);
+                const ti = siblings.indexOf(item);
+                item.parentNode.insertBefore(randDraggedItem, di < ti ? item.nextSibling : item);
+            });
+        }
+
+        function randBindGroup(group) {
+            const partsEl = group.querySelector('.idx-grid-group-parts');
+            partsEl.addEventListener('dragover', e => {
+                e.preventDefault();
+                if (randDraggedItem && randDraggedItem.parentNode !== partsEl)
+                    group.classList.add('drag-target');
+            });
+            partsEl.addEventListener('dragleave', e => {
+                if (!partsEl.contains(e.relatedTarget)) group.classList.remove('drag-target');
+            });
+            partsEl.addEventListener('drop', e => {
+                e.preventDefault();
+                group.classList.remove('drag-target');
+                if (randDraggedItem && randDraggedItem.parentNode !== partsEl)
+                    partsEl.appendChild(randDraggedItem);
+            });
+        }
+
+        function randRefreshLabels() {
+            const groups = Array.from(randGrid.querySelectorAll('.idx-grid-group'));
+            groups.forEach((group, idx) => {
+                const header = group.querySelector('.idx-grid-group-header');
+                const label = group.querySelector('.idx-grid-group-label');
+                let removeBtn = group.querySelector('.idx-btn-remove-group');
+                if (groups.length === 1) {
+                    label.textContent = 'All rows';
+                    if (removeBtn) removeBtn.remove();
+                } else {
+                    if (!removeBtn) {
+                        removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'idx-btn-remove-group';
+                        removeBtn.textContent = 'Remove';
+                        removeBtn.addEventListener('click', () => randRemoveGroup(removeBtn));
+                        header.appendChild(removeBtn);
+                    }
+                    label.textContent = idx === 0 ? 'Back rows' : idx === groups.length - 1 ? 'Front rows' : 'Middle rows';
+                }
+            });
+        }
+
+        function randAddGroup() {
+            const group = document.createElement('div');
+            group.className = 'idx-grid-group';
+            group.innerHTML = `<div class="idx-grid-group-header"><span class="idx-grid-group-label"></span></div><div class="idx-grid-group-parts"></div>`;
+            randGrid.appendChild(group);
+            randBindGroup(group);
+            randRefreshLabels();
+        }
+
+        function randRemoveGroup(btn) {
+            const group = btn.closest('.idx-grid-group');
+            const allGroups = Array.from(randGrid.querySelectorAll('.idx-grid-group'));
+            const idx = allGroups.indexOf(group);
+            const dest = allGroups[idx > 0 ? idx - 1 : 1];
+            group.querySelectorAll('.idx-part-item').forEach(item => dest.querySelector('.idx-grid-group-parts').appendChild(item));
+            group.remove();
+            randRefreshLabels();
+        }
+
+        function randSyncGrid() {
+            const partNames = document.getElementById('parts').value
+                .split(',').map(p => p.trim()).filter(Boolean);
+            const existingItems = {};
+            randGrid.querySelectorAll('.idx-part-item').forEach(item => {
+                existingItems[item.dataset.part] = item;
+            });
+            Object.entries(existingItems).forEach(([part, item]) => {
+                if (!partNames.includes(part)) item.remove();
+            });
+            partNames.forEach(part => {
+                if (!existingItems[part]) {
+                    let firstGroup = randGrid.querySelector('.idx-grid-group');
+                    if (!firstGroup) {
+                        firstGroup = document.createElement('div');
+                        firstGroup.className = 'idx-grid-group';
+                        firstGroup.innerHTML = `<div class="idx-grid-group-header"><span class="idx-grid-group-label"></span></div><div class="idx-grid-group-parts"></div>`;
+                        randGrid.appendChild(firstGroup);
+                        randBindGroup(firstGroup);
+                    }
+                    firstGroup.querySelector('.idx-grid-group-parts').appendChild(randMakeItem(part));
+                }
+            });
+            randRefreshLabels();
+        }
+
+        document.getElementById('parts').addEventListener('input', randSyncGrid);
+
+        // Mode picker — random form
+        document.querySelectorAll('#random-form input[name="arr_mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const isMixed = this.value === 'mixed';
+                document.getElementById('rand-grid-ui').style.display = isMixed ? 'none' : '';
+                document.getElementById('rand-mixed-ui').style.display = isMixed ? '' : 'none';
+                document.getElementById('rand-mode-group-label').classList.toggle('active', !isMixed);
+                document.getElementById('rand-mode-mixed-label').classList.toggle('active', isMixed);
+                document.getElementById('rand-mixed-hidden').value = isMixed ? 'true' : 'false';
+            });
+        });
+
+        // On submit: populate hidden configure fields (random form)
+        document.getElementById('random-form').addEventListener('submit', function() {
+            const isMixed = document.querySelector('#random-form input[name="arr_mode"]:checked').value === 'mixed';
+            if (!isMixed) {
+                const groupRows = Array.from(randGrid.querySelectorAll('.idx-grid-group')).map(g =>
+                    Array.from(g.querySelectorAll('.idx-part-item')).map(i => i.dataset.part).join(',')
+                ).filter(Boolean);
+                document.getElementById('rand-part-grid-hidden').value = groupRows.length > 1 ? groupRows.join(';') : '';
+                document.getElementById('rand-part-order-hidden').value = groupRows.map(r => r.split(',')).flat().join(',');
+            } else {
+                document.getElementById('rand-part-grid-hidden').value = '';
+                document.getElementById('rand-part-order-hidden').value =
+                    document.getElementById('parts').value.split(',').map(p => p.trim()).filter(Boolean).join(',');
+            }
+        }, true);
 
         // Init grid and wire up name inputs on first section
         idxSyncGrid();
