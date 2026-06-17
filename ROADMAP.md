@@ -22,6 +22,19 @@ Effort and impact are rated Low / Med / High.
 
 ---
 
+## Known Bugs
+
+These are confirmed gaps in the current implementation, not feature requests.
+
+| Branch | Bug | Effort |
+|--------|-----|--------|
+| `fix/aisle-persist` | Aisle position not saved to SQLite or `.choralchart` — lost on share link and file reload | Low |
+| `fix/export-completeness` | PNG export captures only the seat grid — chart title, legend, and conductor label are excluded | Low |
+| `fix/part-rename` | Changing a singer's voice part to one outside `part_order` orphans them — wrong color, missing from legend | Low |
+| `fix/concurrent-edit` | Concurrent "Update" on the same share link silently overwrites — last write wins, no warning | Low |
+
+---
+
 ## High Impact
 
 | Branch | Idea | Effort | Impact |
@@ -32,7 +45,8 @@ Effort and impact are rated Low / Med / High.
 | `feature/snapshots` | Named chart snapshots — "save as December concert" without leaving the editor | Med | High |
 | `feature/autosave` | localStorage autosave with recovery prompt on next load — safety net if browser crashes | Med | High |
 | `feature/onboarding` | First-run experience — "here's what you'll build" preview or one-click demo chart | Med | High |
-| `feature/load-sample` | "Load sample" button that opens demo data directly in the editor — no download/re-upload | Low | High |
+| `feature/load-sample` | "Load sample" opens a curated demo chart (pre-staggered, mixed voices) that shows the tool at its best — not just a generic SATB roster | Low | High |
+| `feature/preserve-edits` | Re-applying an arrangement preserves manual seat swaps instead of regenerating from scratch | High | High |
 | `feature/ensembles` | Ensemble/org concept — group charts, share singers across rosters, reuse layout templates | High | High |
 
 ---
@@ -56,6 +70,7 @@ Effort and impact are rated Low / Med / High.
 | Branch | Idea | Effort | Impact |
 |--------|------|--------|--------|
 | `feature/headcount-bar` | Section headcount summary (e.g. S: 12 · A: 11 · T: 8 · B: 9) above the chart | Low | Med |
+| `feature/height-coverage` | Height coverage indicator — "height data: 8/40 singers" near the height toggle so directors know if sorting is actually working | Low | Med |
 | `fix/dismissible-warnings` | Per-pair height warning dismissal — suppress intentional placements (soloists, etc.) | Med | Med |
 | `fix/bulk-paste` | Narrow accepted height formats; inline validation instead of silent fallback | Low | Low |
 | `fix/part-label-assumptions` | Ensure part names are always exactly what the director typed — no baked-in label logic | Low | Low |
