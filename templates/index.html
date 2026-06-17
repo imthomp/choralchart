@@ -280,7 +280,7 @@
         <div class="card" style="margin-top: 1.5rem;">
             <div class="tab-bar">
                 <button class="tab-btn active" onclick="switchTab('manual', this)">Enter Roster</button>
-                <button class="tab-btn" onclick="switchTab('random', this)">Random Roster</button>
+                <button class="tab-btn" onclick="switchTab('sample', this)">Sample Roster</button>
                 <button class="tab-btn" onclick="switchTab('upload', this)">Upload</button>
             </div>
 
@@ -371,9 +371,18 @@
                 </form>
             </div>
 
-            <!-- TAB: Random Roster -->
-            <div id="tab-random" class="tab-panel" style="display:none">
-                <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.9rem;">Generate placeholder singers to explore layout options.</p>
+            <!-- TAB: Sample Roster -->
+            <div id="tab-sample" class="tab-panel" style="display:none">
+                <p style="margin-bottom: 1rem; color: #6b7280; font-size: 0.9rem;">Try a preloaded roster to explore the editor, or generate placeholder singers.</p>
+
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem;">
+                    <a href="{{ url_for('load_sample', name='satb_choir') }}" class="btn btn-secondary btn-full">SATB Choir — 40 singers</a>
+                    <a href="{{ url_for('load_sample', name='mens_chorus') }}" class="btn btn-secondary btn-full">Men's Chorus — 20 singers</a>
+                    <a href="{{ url_for('load_sample', name='womens_chorus') }}" class="btn btn-secondary btn-full">Women's Chorus — 20 singers</a>
+                </div>
+
+                <hr class="configure-divider">
+                <p style="margin-bottom: 1rem; font-size: 0.875rem; font-weight: 600; color: #374151;">Generate random singers</p>
 
                 <form id="random-form" action="{{ url_for('configure_post') }}" method="post">
                     <input type="hidden" name="entry_type" value="random">
@@ -479,11 +488,6 @@
                         <pre>name,voice_part,height
 John Smith,Tenor 1,72
 Jane Doe,Soprano,64.5</pre>
-                        <p style="margin-top:0.5rem; font-size:0.8rem; color:#6b7280;">Download sample rosters:
-                            <a href="{{ url_for('static', filename='samples/satb_choir.csv') }}" download>SATB choir (40)</a> ·
-                            <a href="{{ url_for('static', filename='samples/mens_chorus.csv') }}" download>Men's chorus (20)</a> ·
-                            <a href="{{ url_for('static', filename='samples/womens_chorus.csv') }}" download>Women's chorus (20)</a>
-                        </p>
                     </div>
                 </div>
             </div>
@@ -805,7 +809,7 @@ Jane Doe,Soprano,64.5</pre>
         // Tab switching
         function switchTab(name, btn) {
             document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
-            document.getElementById('tab-' + name).style.display = '';
+            document.getElementById('tab-' + name).style.display = 'block';
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
         }

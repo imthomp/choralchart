@@ -2,6 +2,7 @@
 
 import base64
 import json
+import os
 import secrets
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
@@ -113,6 +114,54 @@ def upload():
     except Exception as e:
         flash(f'Error processing file: {str(e)}')
         return redirect(url_for('index'))
+
+
+@app.route('/sample/<name>')
+def load_sample(name):
+    """Load a built-in sample roster and open the editor."""
+    allowed = {'satb_choir', 'mens_chorus', 'womens_chorus'}
+    if name not in allowed:
+        flash('Sample not found')
+        return redirect(url_for('index'))
+
+    path = os.path.join(app.static_folder, 'samples', f'{name}.csv')
+    with open(path, encoding='utf-8') as f:
+        singers = parse_csv(f.read())
+
+    if not singers:
+        flash('Sample roster is empty')
+        return redirect(url_for('index'))
+
+    part_order = list(dict.fromkeys(s.voice_part for s in singers))
+    rows, seats_per_row = calculate_dimensions_with_user_input(
+        len(singers), len(part_order), 'side-by-side', None, None
+    )
+    seats_per_row = max(seats_per_row, calculate_min_width(singers, part_order, rows))
+    chart = generate_seating_chart(singers, rows, seats_per_row, part_order, 'side-by-side')
+
+    return render_template('edit.html',
+        editable=True,
+        chart=chart,
+        chart_data=encode_chart(chart),
+        num_singers=len(singers),
+        part_order=part_order,
+        layout='side-by-side',
+        rows=rows,
+        seats_per_row=seats_per_row,
+        flipped=False,
+        staggered=True,
+        curved=False,
+        aisle_after=None,
+        singers_data=base64.b64encode(
+            json.dumps([{'name': s.name, 'voice_part': s.voice_part, 'height': s.height}
+                        for s in singers]).encode()
+        ).decode(),
+        stagger_offsets=calculate_stagger_offsets(chart),
+        single_wide_parts=find_single_wide_parts(chart, part_order),
+        part_grid_str='',
+        mixed=False,
+        chart_title='',
+    )
 
 
 @app.route('/edit', methods=['POST'])
