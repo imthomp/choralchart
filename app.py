@@ -14,7 +14,6 @@ from seating_algorithm import (
     generate_seating_chart,
     calculate_dimensions_with_user_input,
     generate_random_roster,
-    calculate_min_width,
     calculate_min_width_grid,
     find_single_wide_parts,
     calculate_stagger_offsets,
@@ -43,7 +42,20 @@ def configure_post():
     try:
         entry_type = request.form.get('entry_type', 'manual')
 
-        if entry_type == 'random':
+        if entry_type == 'sample':
+            sample_name = request.form.get('sample_name', '').strip()
+            allowed = {'satb_choir', 'mens_chorus', 'womens_chorus'}
+            if sample_name not in allowed:
+                flash('Sample not found')
+                return redirect(url_for('index'))
+            path = os.path.join(app.static_folder, 'samples', f'{sample_name}.csv')
+            with open(path, encoding='utf-8') as f:
+                singers = parse_csv(f.read())
+            if not singers:
+                flash('Sample roster is empty')
+                return redirect(url_for('index'))
+
+        elif entry_type == 'random':
             num_singers_str = request.form.get('num_singers', '').strip()
             num_singers = int(num_singers_str) if num_singers_str else 40
             parts_str = request.form.get('parts', '').strip() or 'Soprano,Alto,Tenor,Bass'
@@ -136,7 +148,6 @@ def load_sample(name):
     rows, seats_per_row = calculate_dimensions_with_user_input(
         len(singers), len(part_order), 'side-by-side', None, None
     )
-    seats_per_row = max(seats_per_row, calculate_min_width(singers, part_order, rows))
     chart = generate_seating_chart(singers, rows, seats_per_row, part_order, 'side-by-side')
 
     return render_template('edit.html',
@@ -354,9 +365,7 @@ def generate_chart_from_form(singers=None) -> dict:
             len(singers), len(part_order), layout, user_rows, user_max_per_row
         )
 
-        if layout == 'side-by-side':
-            seats_per_row = max(seats_per_row, calculate_min_width(singers, part_order, rows))
-        elif layout == 'grid' and part_grid:
+        if layout == 'grid' and part_grid:
             seats_per_row = max(seats_per_row, calculate_min_width_grid(singers, part_grid, rows))
 
         chart = generate_seating_chart(singers, rows, seats_per_row, part_order, layout,

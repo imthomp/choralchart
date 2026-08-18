@@ -158,9 +158,11 @@ if (CHART_CONFIG.editable) {
     window.undo = undo;
     window.redo = redo;
 
-    // Drag and drop
+    // Seat interaction (pointer events — works on mouse and touch)
     const partOrder = CHART_CONFIG.partOrder;
     let selectedSeat = null;
+    let dragState = null;
+    let lastTapInfo = { el: null, time: 0 };
 
     function getPartIndex(voicePart) {
         const idx = partOrder.indexOf(voicePart);
@@ -173,7 +175,6 @@ if (CHART_CONFIG.editable) {
         if (singerData) {
             const partIdx = getPartIndex(singerData.voice_part);
             seatEl.className = `seat part-${partIdx} draggable`;
-            seatEl.draggable = true;
             seatEl.dataset.singer = JSON.stringify(singerData);
 
             let heightStr = '';
@@ -192,7 +193,6 @@ if (CHART_CONFIG.editable) {
             `;
         } else {
             seatEl.className = 'seat empty';
-            seatEl.draggable = false;
             seatEl.dataset.singer = 'null';
             seatEl.innerHTML = `<span class="seat-number">${seatNum}</span>`;
         }
@@ -237,62 +237,135 @@ if (CHART_CONFIG.editable) {
         document.getElementById('chart_data').value = encoded;
     }
 
-    // Drag and drop events
-    document.querySelectorAll('.seat').forEach(seat => {
-        seat.addEventListener('dragstart', (e) => {
-            e.target.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-        });
+    // Pointer-event drag and drop (works on mouse and touch/iPad)
+    const DRAG_THRESHOLD = 6; // px of movement before drag starts
 
-        seat.addEventListener('dragend', (e) => {
-            e.target.classList.remove('dragging');
-            document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
-        });
+    document.addEventListener('pointerdown', e => {
+        const seat = e.target.closest('#chart .seat');
+        if (!seat) return;
 
-        seat.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            e.currentTarget.classList.add('drag-over');
-        });
-
-        seat.addEventListener('dragleave', (e) => {
-            e.currentTarget.classList.remove('drag-over');
-        });
-
-        seat.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.currentTarget.classList.remove('drag-over');
-            const dragging = document.querySelector('.dragging');
-            if (dragging && dragging !== e.currentTarget) {
-                swapSeats(dragging, e.currentTarget);
-            }
-        });
-
-        seat.addEventListener('click', (e) => {
-            if (selectedSeat === null) {
-                selectedSeat = e.currentTarget;
-                selectedSeat.classList.add('selected');
-            } else if (selectedSeat === e.currentTarget) {
-                selectedSeat.classList.remove('selected');
-                selectedSeat = null;
-            } else {
-                swapSeats(selectedSeat, e.currentTarget);
-                selectedSeat.classList.remove('selected');
-                selectedSeat = null;
-            }
-        });
-
-        seat.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            const seatEl = e.currentTarget;
-            if (seatEl.dataset.singer === 'null') return;
+        if (!seat.classList.contains('draggable')) {
+            // Empty seat — complete a pending selection swap
             if (selectedSeat) {
+                swapSeats(selectedSeat, seat);
                 selectedSeat.classList.remove('selected');
                 selectedSeat = null;
             }
-            const singer = JSON.parse(seatEl.dataset.singer);
-            openModal(seatEl, singer);
-        });
+            return;
+        }
+
+        e.preventDefault(); // only on draggable seats (prevents text selection, keeps touch-scroll on empty seats)
+        const rect = seat.getBoundingClientRect();
+        dragState = {
+            sourceEl: seat,
+            cloneEl: null,
+            startX: e.clientX,
+            startY: e.clientY,
+            offsetX: e.clientX - rect.left,
+            offsetY: e.clientY - rect.top,
+            currentTarget: null,
+            moved: false,
+            pointerId: e.pointerId,
+        };
+    });
+
+    document.addEventListener('pointermove', e => {
+        if (!dragState || e.pointerId !== dragState.pointerId) return;
+        e.preventDefault();
+
+        const dx = e.clientX - dragState.startX;
+        const dy = e.clientY - dragState.startY;
+
+        if (!dragState.moved) {
+            if (Math.sqrt(dx * dx + dy * dy) < DRAG_THRESHOLD) return;
+            if (dragState.sourceEl.dataset.singer === 'null') { dragState = null; return; }
+
+            // Cancel any pending selection when drag starts
+            if (selectedSeat) { selectedSeat.classList.remove('selected'); selectedSeat = null; }
+
+            // Build floating clone
+            const src = dragState.sourceEl;
+            const rect = src.getBoundingClientRect();
+            const clone = src.cloneNode(true);
+            clone.style.cssText = [
+                'position:fixed', 'z-index:9999', 'pointer-events:none',
+                `width:${rect.width}px`, `height:${rect.height}px`,
+                `left:${e.clientX - dragState.offsetX}px`,
+                `top:${e.clientY - dragState.offsetY}px`,
+                'opacity:0.9', 'box-shadow:0 8px 28px rgba(0,0,0,0.22)',
+                'transform:scale(1.06)', 'border-radius:8px', 'transition:none',
+            ].join(';');
+            document.body.appendChild(clone);
+            dragState.cloneEl = clone;
+            src.classList.add('dragging');
+            dragState.moved = true;
+        }
+
+        // Move clone
+        dragState.cloneEl.style.left = (e.clientX - dragState.offsetX) + 'px';
+        dragState.cloneEl.style.top  = (e.clientY - dragState.offsetY) + 'px';
+
+        // Find seat under cursor (hide clone so it doesn't block hit-test)
+        dragState.cloneEl.style.visibility = 'hidden';
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        dragState.cloneEl.style.visibility = '';
+
+        const over = el ? el.closest('#chart .seat') : null;
+        if (dragState.currentTarget !== over) {
+            if (dragState.currentTarget) dragState.currentTarget.classList.remove('drag-over');
+            if (over && over !== dragState.sourceEl) {
+                over.classList.add('drag-over');
+                dragState.currentTarget = over;
+            } else {
+                dragState.currentTarget = null;
+            }
+        }
+    });
+
+    function finishDrag(e) {
+        if (!dragState || e.pointerId !== dragState.pointerId) return;
+        const { sourceEl, cloneEl, currentTarget, moved } = dragState;
+
+        if (cloneEl) document.body.removeChild(cloneEl);
+        sourceEl.classList.remove('dragging');
+        if (currentTarget) currentTarget.classList.remove('drag-over');
+
+        if (moved) {
+            if (currentTarget) swapSeats(sourceEl, currentTarget);
+        } else {
+            // Tap — check for double-tap (opens modal) or single tap (select/swap)
+            const now = Date.now();
+            const isSinger = sourceEl.dataset.singer !== 'null';
+            if (isSinger && lastTapInfo.el === sourceEl && now - lastTapInfo.time < 350) {
+                // Double-tap: open modal
+                if (selectedSeat) { selectedSeat.classList.remove('selected'); selectedSeat = null; }
+                openModal(sourceEl, JSON.parse(sourceEl.dataset.singer));
+                lastTapInfo = { el: null, time: 0 };
+            } else {
+                lastTapInfo = { el: sourceEl, time: now };
+                if (selectedSeat === null) {
+                    if (isSinger) { selectedSeat = sourceEl; selectedSeat.classList.add('selected'); }
+                } else if (selectedSeat === sourceEl) {
+                    selectedSeat.classList.remove('selected');
+                    selectedSeat = null;
+                } else {
+                    swapSeats(selectedSeat, sourceEl);
+                    selectedSeat.classList.remove('selected');
+                    selectedSeat = null;
+                }
+            }
+        }
+        dragState = null;
+    }
+
+    document.addEventListener('pointerup', finishDrag);
+    document.addEventListener('pointercancel', e => {
+        if (!dragState || e.pointerId !== dragState.pointerId) return;
+        const { sourceEl, cloneEl, currentTarget } = dragState;
+        if (cloneEl) document.body.removeChild(cloneEl);
+        sourceEl.classList.remove('dragging');
+        if (currentTarget) currentTarget.classList.remove('drag-over');
+        dragState = null;
     });
 
     // Modal functionality
@@ -756,15 +829,17 @@ if (CHART_CONFIG.editable) {
 // Export chart as PNG image (available in both editable and read-only views)
 function exportImage() {
     const panel = document.querySelector('.chart-panel');
+    const titleEl = document.getElementById('chart-title');
+    const titleVal = titleEl ? titleEl.value.trim() : '';
     const fullW = panel.scrollWidth;
-    const fullH = panel.scrollHeight;
+    const titleHeight = titleVal ? 56 : 0; // extra px for title header
 
     html2canvas(panel, {
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
         width: fullW,
-        height: fullH,
+        height: panel.scrollHeight + titleHeight,
         windowWidth: fullW + 200,
         scrollX: 0,
         scrollY: 0,
@@ -772,8 +847,16 @@ function exportImage() {
             const p = clonedDoc.querySelector('.chart-panel');
             p.style.overflow = 'visible';
             p.style.width = fullW + 'px';
-            p.style.height = fullH + 'px';
             p.style.minWidth = 'unset';
+
+            // Inject title above the chart
+            if (titleVal) {
+                const h = clonedDoc.createElement('div');
+                h.style.cssText = 'font-size:1.2rem;font-weight:700;text-align:center;padding-bottom:0.75rem;color:#111827;font-family:system-ui,sans-serif;';
+                h.textContent = titleVal;
+                p.insertBefore(h, p.firstChild);
+            }
+
             const wrapper = p.querySelector('.chart-wrapper');
             if (wrapper) {
                 wrapper.style.width = 'max-content';
@@ -789,7 +872,10 @@ function exportImage() {
         }
     }).then(canvas => {
         const link = document.createElement('a');
-        link.download = 'seating-chart.png';
+        const safeName = titleVal
+            ? titleVal.replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-|-$/g, '')
+            : 'seating-chart';
+        link.download = safeName + '.png';
         link.href = canvas.toDataURL('image/png');
         link.click();
     });

@@ -49,11 +49,12 @@
         html[data-theme="light"] .legend-color.part-{{ loop.index0 }} { background-color: {{ color[0] }}; border-color: {{ color[1] }}; }
         {% endfor %}
 
-        .seat.draggable { cursor: grab; }
-        .seat.dragging { opacity: 0.5; cursor: grabbing; }
+        .seat.draggable { cursor: grab; touch-action: none; }
+        .seat.dragging { opacity: 0.35; cursor: grabbing; }
         .seat.drag-over {
-            outline: 3px dashed var(--brand);
+            outline: 3px solid var(--brand);
             outline-offset: -3px;
+            background: var(--brand-bg) !important;
         }
         .seat.selected {
             outline: 3px solid var(--text-heading);
@@ -365,7 +366,6 @@
                                 {% if seat.singer %}
                                     {% set part_idx = part_order.index(seat.singer.voice_part) if seat.singer.voice_part in part_order else 0 %}
                                     <div class="seat part-{{ part_idx }} draggable{% if is_after_aisle %} aisle-before{% endif %}"
-                                         draggable="true"
                                          data-row="{{ seat.row }}"
                                          data-pos="{{ seat.position }}"
                                          data-singer='{{ {"name": seat.singer.name, "voice_part": seat.singer.voice_part, "height": seat.singer.height} | tojson }}'>

@@ -115,40 +115,57 @@ def _place_side_by_side(
     seats_per_row: int
 ) -> None:
     """
-    Place voice parts side by side (left to right) in columns.
-    Each part gets a column width based on ceil(singers/rows).
-    Parts are placed adjacently with no gaps.
+    Place voice parts side by side (left to right), row by row.
+
+    Each row allocates singers proportionally to each part's remaining count using
+    Bresenham error accumulation, so every row sums to exactly seats_per_row and
+    taller singers (already sorted into each part's queue) land in back rows.
     """
     num_parts = len(part_order)
     if num_parts == 0:
         return
 
-    total_singers = sum(len(groups[part]) for part in part_order)
-    if total_singers == 0:
+    if sum(len(groups[part]) for part in part_order) == 0:
         return
 
-    # Calculate column width needed for each part (ceil of singers/rows)
-    part_widths = []
-    for part in part_order:
-        count = len(groups[part])
-        width = math.ceil(count / rows) if count > 0 else 0
-        part_widths.append(width)
+    queues = {part: list(groups[part]) for part in part_order}
 
-    # Total width needed
-    total_width = sum(part_widths)
+    for row_idx in range(rows):
+        remaining_rows = rows - row_idx
+        total_remaining = sum(len(queues[p]) for p in part_order)
+        if total_remaining == 0:
+            break
 
-    # Center offset for the whole chart
-    chart_offset = (seats_per_row - total_width) // 2
+        row_target = min(seats_per_row, math.ceil(total_remaining / remaining_rows))
 
-    # Place each part in its column
-    current_pos = chart_offset
-    for i, part in enumerate(part_order):
-        part_width = part_widths[i]
-        if part_width > 0:
-            _place_section(chart, groups[part],
-                           start_row=0, end_row=rows,
-                           start_pos=current_pos, end_pos=current_pos + part_width)
-            current_pos += part_width
+        # Allocate row_target among parts proportionally (Bresenham), capped by
+        # each part's natural ceil(remaining/remaining_rows) so we don't front-load.
+        desired = []
+        error = 0.0
+        remaining_target = row_target
+        for i, part in enumerate(part_order):
+            cap = min(len(queues[part]),
+                      math.ceil(len(queues[part]) / remaining_rows) if remaining_rows > 0
+                      else len(queues[part]))
+            if i == num_parts - 1:
+                n = remaining_target
+            else:
+                share = (len(queues[part]) / total_remaining) * row_target
+                n = int(share + error)
+                error += share - n
+            n = max(0, min(n, cap, remaining_target))
+            desired.append(n)
+            remaining_target -= n
+
+        # Center the whole group, then place each part's singers consecutively
+        total_placed = sum(desired)
+        pos = (seats_per_row - total_placed) // 2
+        for i, part in enumerate(part_order):
+            n = desired[i]
+            for j in range(n):
+                if queues[part] and pos + j < len(chart[row_idx]):
+                    chart[row_idx][pos + j].singer = queues[part].pop(0)
+            pos += n
 
 
 def _place_side_by_side_variable(
@@ -549,11 +566,6 @@ def calculate_chart_dimensions(num_singers: int, num_parts: int, layout: str) ->
 
     seats_per_row = math.ceil(num_singers / rows)
 
-    if layout == "side-by-side":
-        # Make seats divisible by num_parts for clean splits
-        while seats_per_row % num_parts != 0:
-            seats_per_row += 1
-
     return rows, seats_per_row
 
 
@@ -595,9 +607,6 @@ def calculate_dimensions_with_user_input(
     if user_rows and not user_max_per_row:
         # User specified rows only - calculate seats per row
         seats_per_row = math.ceil(num_singers / user_rows)
-        if layout == "side-by-side":
-            while seats_per_row % num_parts != 0:
-                seats_per_row += 1
         return user_rows, seats_per_row
 
     if user_max_per_row and not user_rows:
