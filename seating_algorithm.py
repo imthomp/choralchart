@@ -176,73 +176,52 @@ def _place_side_by_side_variable(
 ) -> None:
     """
     Place voice parts side by side with variable row widths.
-    Each part gets a strict column section - no mixing between parts.
+
+    Uses the same Bresenham proportional allocation as _place_side_by_side,
+    but each row's target width comes from row_sizes rather than seats_per_row.
     """
     num_parts = len(part_order)
     rows = len(row_sizes)
     if num_parts == 0 or rows == 0:
         return
 
-    total_singers = sum(len(groups[part]) for part in part_order)
-    if total_singers == 0:
+    if sum(len(groups[part]) for part in part_order) == 0:
         return
 
-    # Calculate the proportion each part should take
-    part_proportions = []
-    for part in part_order:
-        count = len(groups[part])
-        proportion = count / total_singers if total_singers > 0 else 0
-        part_proportions.append(proportion)
-
-    # Create queues for each voice part (tallest first)
     queues = {part: list(groups[part]) for part in part_order}
 
-    # For each row, divide it into sections for each part
     for row_idx in range(rows):
+        total_remaining = sum(len(queues[p]) for p in part_order)
+        if total_remaining == 0:
+            break
+
         row_width = row_sizes[row_idx]
+        row_target = min(row_width, total_remaining)
 
-        # Calculate how many seats each part gets in this row
-        part_seats = []
-        remaining_width = row_width
+        # Allocate row_target among parts proportionally (Bresenham)
+        desired = []
+        error = 0.0
+        remaining_target = row_target
         for i, part in enumerate(part_order):
-            if i == len(part_order) - 1:
-                # Last part gets remaining width
-                seats = remaining_width
+            if i == num_parts - 1:
+                n = remaining_target
             else:
-                seats = round(row_width * part_proportions[i])
-                seats = min(seats, remaining_width)
-            part_seats.append(seats)
-            remaining_width -= seats
+                share = (len(queues[part]) / total_remaining) * row_target
+                n = int(share + error)
+                error += share - n
+            n = max(0, min(n, len(queues[part]), remaining_target))
+            desired.append(n)
+            remaining_target -= n
 
-        # Calculate starting position for each part (centered as a group)
-        total_used = sum(part_seats)
-        start_offset = (row_width - total_used) // 2
-
-        # Place each part's singers in their section
-        current_pos = start_offset
+        # Center the group, then place each part's singers consecutively
+        total_placed = sum(desired)
+        pos = (row_width - total_placed) // 2
         for i, part in enumerate(part_order):
-            section_width = part_seats[i]
-            if section_width <= 0:
-                continue
-
-            # How many singers to place from this part in this row?
-            # Distribute evenly across rows based on remaining singers
-            remaining_rows = rows - row_idx
-            remaining_singers = len(queues[part])
-            if remaining_rows > 0 and remaining_singers > 0:
-                # Place ceil(remaining/remaining_rows) but capped by section width
-                to_place = min(section_width, math.ceil(remaining_singers / remaining_rows))
-
-                # Center within the section
-                section_offset = (section_width - to_place) // 2
-
-                for j in range(to_place):
-                    if queues[part]:
-                        pos = current_pos + section_offset + j
-                        if pos < len(chart[row_idx]):
-                            chart[row_idx][pos].singer = queues[part].pop(0)
-
-            current_pos += section_width
+            n = desired[i]
+            for j in range(n):
+                if queues[part] and pos + j < len(chart[row_idx]):
+                    chart[row_idx][pos + j].singer = queues[part].pop(0)
+            pos += n
 
 
 def _sort_columns_by_height(chart: List[List[Seat]]) -> None:

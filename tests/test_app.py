@@ -247,3 +247,112 @@ class TestRoutes:
     def test_load_no_file(self, client):
         r = client.post("/load")
         assert r.status_code == 302
+
+    def test_configure_sample_satb(self, client):
+        r = client.post("/configure", data={
+            "entry_type": "sample",
+            "sample_name": "satb_choir",
+        })
+        assert r.status_code == 200
+        assert b"Edit Chart" in r.data
+
+    def test_configure_sample_mens(self, client):
+        r = client.post("/configure", data={
+            "entry_type": "sample",
+            "sample_name": "mens_chorus",
+        })
+        assert r.status_code == 200
+
+    def test_configure_sample_womens(self, client):
+        r = client.post("/configure", data={
+            "entry_type": "sample",
+            "sample_name": "womens_chorus",
+        })
+        assert r.status_code == 200
+
+    def test_configure_sample_invalid_name(self, client):
+        r = client.post("/configure", data={
+            "entry_type": "sample",
+            "sample_name": "../../etc/passwd",
+        })
+        assert r.status_code == 302  # flash + redirect
+
+    def test_upload_valid_csv(self, client):
+        from io import BytesIO
+        csv_content = b"name,voice_part,height\nAlice,Soprano,63\nBob,Bass,70\n"
+        r = client.post("/upload", data={
+            "file": (BytesIO(csv_content), "roster.csv")
+        }, content_type="multipart/form-data")
+        assert r.status_code == 200
+        assert b"Edit Chart" in r.data
+
+    def test_share_creates_link(self, client):
+        from seating_algorithm import Singer, generate_seating_chart, encode_chart
+        singers = [Singer("Alice", "Soprano", 63), Singer("Bob", "Bass", 70)]
+        chart = generate_seating_chart(singers, rows=1, seats_per_row=2,
+                                       part_order=["Soprano", "Bass"],
+                                       layout="side-by-side")
+        chart_data = encode_chart(chart)
+        singers_data = base64.b64encode(json.dumps([
+            {"name": s.name, "voice_part": s.voice_part, "height": s.height}
+            for s in singers
+        ]).encode()).decode()
+        r = client.post("/share", data={
+            "chart_data": chart_data,
+            "part_order": "Soprano,Bass",
+            "part_grid": "",
+            "layout": "side-by-side",
+            "singers_data": singers_data,
+            "num_singers": "2",
+            "staggered": "true",
+            "flipped": "false",
+            "mixed": "false",
+            "chart_title": "Test Chart",
+            "aisle_after": "",
+        })
+        assert r.status_code == 200
+        payload = json.loads(r.data)
+        assert "id" in payload
+        assert "url" in payload
+
+    def test_view_shared_chart(self, client):
+        from seating_algorithm import Singer, generate_seating_chart, encode_chart
+        singers = [Singer("Alice", "Soprano", 63)]
+        chart = generate_seating_chart(singers, rows=1, seats_per_row=2,
+                                       part_order=["Soprano"], layout="side-by-side")
+        chart_data = encode_chart(chart)
+        singers_data = base64.b64encode(json.dumps([
+            {"name": "Alice", "voice_part": "Soprano", "height": 63}
+        ]).encode()).decode()
+        share_r = client.post("/share", data={
+            "chart_data": chart_data,
+            "part_order": "Soprano",
+            "part_grid": "",
+            "layout": "side-by-side",
+            "singers_data": singers_data,
+            "num_singers": "1",
+            "staggered": "false",
+            "flipped": "false",
+            "mixed": "false",
+            "chart_title": "Concert",
+            "aisle_after": "",
+        })
+        chart_id = json.loads(share_r.data)["id"]
+        r = client.get(f"/chart/{chart_id}")
+        assert r.status_code == 200
+        assert b"Concert" in r.data
+
+    def test_view_missing_chart(self, client):
+        r = client.get("/chart/doesnotexist")
+        assert r.status_code == 302  # redirect + flash
+
+    def test_chart_title_persists_through_edit(self, client):
+        r = client.post("/edit", data={
+            "singers_data": SIMPLE_ROSTER,
+            "layout": "side-by-side",
+            "part_order": "Soprano, Alto",
+            "staggered": "true",
+            "chart_title": "My Concert",
+        })
+        assert r.status_code == 200
+        assert b"My Concert" in r.data

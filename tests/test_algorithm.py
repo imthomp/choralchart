@@ -5,6 +5,7 @@ import pytest
 from seating_algorithm import (
     Singer, Seat, generate_seating_chart, get_unique_parts,
     calculate_min_width, calculate_min_width_grid, calculate_dimensions_with_user_input,
+    encode_chart, decode_chart, calculate_stagger_offsets, generate_random_roster,
 )
 from app import find_single_wide_parts
 
@@ -432,6 +433,221 @@ def has_vertical_same_part(chart):
             if above.singer and above.singer.voice_part == seat.singer.voice_part:
                 return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# encode_chart / decode_chart roundtrip
+# ---------------------------------------------------------------------------
+
+class TestEncodeDecodeChart:
+    def make_chart(self):
+        singers = [Singer(f"S{i}", "Soprano", height=60 + i) for i in range(4)]
+        return generate_seating_chart(
+            singers, rows=2, seats_per_row=4,
+            part_order=["Soprano"], layout="side-by-side"
+        )
+
+    def test_roundtrip_preserves_singer_count(self):
+        chart = self.make_chart()
+        decoded = decode_chart(encode_chart(chart))
+        placed = [s for row in decoded for s in row if s.singer]
+        assert len(placed) == 4
+
+    def test_roundtrip_preserves_names(self):
+        chart = self.make_chart()
+        decoded = decode_chart(encode_chart(chart))
+        names = {s.singer.name for row in decoded for s in row if s.singer}
+        assert names == {f"S{i}" for i in range(4)}
+
+    def test_roundtrip_preserves_heights(self):
+        chart = self.make_chart()
+        decoded = decode_chart(encode_chart(chart))
+        heights = sorted(s.singer.height for row in decoded for s in row if s.singer)
+        assert heights == [60, 61, 62, 63]
+
+    def test_roundtrip_preserves_none_singer(self):
+        chart = self.make_chart()
+        encoded = encode_chart(chart)
+        decoded = decode_chart(encoded)
+        empty_count = sum(1 for row in decoded for s in row if not s.singer)
+        original_empty = sum(1 for row in chart for s in row if not s.singer)
+        assert empty_count == original_empty
+
+    def test_roundtrip_preserves_dimensions(self):
+        chart = self.make_chart()
+        decoded = decode_chart(encode_chart(chart))
+        assert len(decoded) == len(chart)
+        assert all(len(decoded[i]) == len(chart[i]) for i in range(len(chart)))
+
+
+# ---------------------------------------------------------------------------
+# calculate_stagger_offsets
+# ---------------------------------------------------------------------------
+
+class TestCalculateStaggerOffsets:
+    def test_empty_chart_returns_empty(self):
+        assert calculate_stagger_offsets([]) == []
+
+    def test_single_row_no_offset(self):
+        singers = [Singer("A", "Soprano", height=65)]
+        chart = generate_seating_chart(singers, rows=1, seats_per_row=2,
+                                       part_order=["Soprano"], layout="side-by-side")
+        offsets = calculate_stagger_offsets(chart)
+        assert offsets == [False]
+
+    def test_returns_one_bool_per_row(self):
+        singers = [Singer(f"S{i}", "Soprano", height=60 + i) for i in range(6)]
+        chart = generate_seating_chart(singers, rows=3, seats_per_row=4,
+                                       part_order=["Soprano"], layout="side-by-side")
+        offsets = calculate_stagger_offsets(chart)
+        assert len(offsets) == 3
+        assert all(isinstance(o, bool) for o in offsets)
+
+    def test_first_row_never_offset(self):
+        singers = [Singer(f"S{i}", "Soprano", height=60 + i) for i in range(4)]
+        chart = generate_seating_chart(singers, rows=2, seats_per_row=4,
+                                       part_order=["Soprano"], layout="side-by-side")
+        offsets = calculate_stagger_offsets(chart)
+        assert offsets[0] is False
+
+    def test_adjacent_rows_alternate_for_uniform_counts(self):
+        singers = [Singer(f"S{i}", "Soprano", height=60 + i) for i in range(8)]
+        chart = generate_seating_chart(singers, rows=4, seats_per_row=4,
+                                       part_order=["Soprano"], layout="side-by-side")
+        offsets = calculate_stagger_offsets(chart)
+        # Rows with the same singer count and same parity must alternate
+        for i in range(1, len(offsets)):
+            assert offsets[i] != offsets[i - 1]
+
+
+# ---------------------------------------------------------------------------
+# generate_random_roster
+# ---------------------------------------------------------------------------
+
+class TestGenerateRandomRoster:
+    def test_correct_total_count(self):
+        singers = generate_random_roster(40, ["Soprano", "Alto", "Tenor", "Bass"], seed=42)
+        assert len(singers) == 40
+
+    def test_all_parts_represented(self):
+        singers = generate_random_roster(40, ["Soprano", "Alto", "Tenor", "Bass"], seed=42)
+        parts = {s.voice_part for s in singers}
+        assert parts == {"Soprano", "Alto", "Tenor", "Bass"}
+
+    def test_heights_within_range(self):
+        singers = generate_random_roster(20, ["Soprano", "Alto"], height_range=(60, 78), seed=1)
+        for s in singers:
+            assert 60 <= s.height <= 78
+
+    def test_custom_distribution(self):
+        singers = generate_random_roster(
+            10, ["Soprano", "Alto"], distribution=[7, 3], seed=5
+        )
+        counts = {p: 0 for p in ["Soprano", "Alto"]}
+        for s in singers:
+            counts[s.voice_part] += 1
+        assert counts["Soprano"] == 7
+        assert counts["Alto"] == 3
+
+    def test_reproducible_with_seed(self):
+        a = generate_random_roster(20, ["Soprano", "Bass"], seed=99)
+        b = generate_random_roster(20, ["Soprano", "Bass"], seed=99)
+        assert [s.name for s in a] == [s.name for s in b]
+
+
+# ---------------------------------------------------------------------------
+# Uniform row widths (new side-by-side algorithm)
+# ---------------------------------------------------------------------------
+
+class TestUniformRowWidths:
+    def row_singer_counts(self, chart):
+        return [sum(1 for s in row if s.singer) for row in chart]
+
+    def test_equal_satb_all_rows_same_width(self):
+        parts = ["Soprano", "Alto", "Tenor", "Bass"]
+        singers = [Singer(f"{p[0]}{i}", p, height=65) for p in parts for i in range(10)]
+        from seating_algorithm import calculate_chart_dimensions
+        rows, cols = calculate_chart_dimensions(40, 4, "side-by-side")
+        chart = generate_seating_chart(singers, rows=rows, seats_per_row=cols,
+                                       part_order=parts, layout="side-by-side")
+        counts = self.row_singer_counts(chart)
+        assert min(counts) == max(counts), f"Row widths uneven: {counts}"
+
+    def test_all_singers_placed_with_auto_dims(self):
+        parts = ["Soprano", "Alto", "Tenor", "Bass"]
+        singers = [Singer(f"{p[0]}{i}", p, height=65) for p in parts for i in range(10)]
+        from seating_algorithm import calculate_chart_dimensions
+        rows, cols = calculate_chart_dimensions(40, 4, "side-by-side")
+        chart = generate_seating_chart(singers, rows=rows, seats_per_row=cols,
+                                       part_order=parts, layout="side-by-side")
+        assert len(all_singers(chart)) == 40
+
+    def test_parts_left_to_right_order_preserved(self):
+        parts = ["Soprano", "Alto", "Tenor", "Bass"]
+        singers = [Singer(f"{p[0]}{i}", p, height=65) for p in parts for i in range(10)]
+        from seating_algorithm import calculate_chart_dimensions
+        rows, cols = calculate_chart_dimensions(40, 4, "side-by-side")
+        chart = generate_seating_chart(singers, rows=rows, seats_per_row=cols,
+                                       part_order=parts, layout="side-by-side")
+        for row in chart:
+            row_parts_list = [s.singer.voice_part for s in row if s.singer]
+            idxs = [parts.index(p) for p in row_parts_list]
+            assert idxs == sorted(idxs), f"Parts not L-R ordered in row: {row_parts_list}"
+
+    def test_unequal_parts_all_placed(self):
+        singers = (
+            [Singer(f"S{i}", "Soprano", 65) for i in range(20)] +
+            [Singer(f"A{i}", "Alto",    65) for i in range(5)]  +
+            [Singer(f"T{i}", "Tenor",   65) for i in range(10)] +
+            [Singer(f"B{i}", "Bass",    65) for i in range(5)]
+        )
+        from seating_algorithm import calculate_chart_dimensions
+        rows, cols = calculate_chart_dimensions(40, 4, "side-by-side")
+        chart = generate_seating_chart(singers, rows=rows, seats_per_row=cols,
+                                       part_order=["Soprano", "Alto", "Tenor", "Bass"],
+                                       layout="side-by-side")
+        assert len(all_singers(chart)) == 40
+
+
+# ---------------------------------------------------------------------------
+# Variable row sizes (_place_side_by_side_variable)
+# ---------------------------------------------------------------------------
+
+class TestVariableRowSizes:
+    def test_all_singers_placed(self):
+        parts = ["Soprano", "Alto", "Tenor", "Bass"]
+        singers = [Singer(f"{p[0]}{i}", p, height=65) for p in parts for i in range(5)]
+        row_sizes = [8, 8, 6, 6]
+        chart = generate_seating_chart(
+            singers, rows=4, seats_per_row=8,
+            part_order=parts, layout="side-by-side", row_sizes=row_sizes
+        )
+        assert len(all_singers(chart)) == 20
+
+    def test_row_widths_match_row_sizes(self):
+        parts = ["Soprano", "Bass"]
+        singers = [Singer(f"S{i}", "Soprano", 65) for i in range(6)] + \
+                  [Singer(f"B{i}", "Bass",    69) for i in range(6)]
+        row_sizes = [6, 4, 2]
+        chart = generate_seating_chart(
+            singers, rows=3, seats_per_row=6,
+            part_order=parts, layout="side-by-side", row_sizes=row_sizes
+        )
+        for i, row in enumerate(chart):
+            assert len(row) == row_sizes[i]
+
+    def test_parts_in_order(self):
+        parts = ["Soprano", "Alto", "Tenor", "Bass"]
+        singers = [Singer(f"{p[0]}{i}", p, height=65) for p in parts for i in range(3)]
+        row_sizes = [8, 6]
+        chart = generate_seating_chart(
+            singers, rows=2, seats_per_row=8,
+            part_order=parts, layout="side-by-side", row_sizes=row_sizes
+        )
+        for row in chart:
+            row_p = [s.singer.voice_part for s in row if s.singer]
+            idxs = [parts.index(p) for p in row_p]
+            assert idxs == sorted(idxs)
 
 
 class TestMixedMode:
