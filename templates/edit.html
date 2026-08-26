@@ -317,6 +317,7 @@
             <div style="display:flex; align-items:center; gap:0.5rem; margin-left:auto;">
                 <label for="chart-title" style="font-size:0.875rem; color:var(--text-muted); white-space:nowrap;">Piece / Title:</label>
                 <input type="text" id="chart-title" name="chart_title" placeholder="e.g. Bach Magnificat"
+                       value="{{ chart_title or '' }}"
                        style="padding:0.35rem 0.6rem; border:1px solid var(--border-mid); border-radius:6px; font-size:0.875rem; width:200px; background:var(--surface);">
             </div>
         </div>

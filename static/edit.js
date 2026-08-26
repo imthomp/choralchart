@@ -809,6 +809,7 @@ if (CHART_CONFIG.editable) {
             flipped:      document.querySelector('input[name="flipped"]').value,
             mixed:        isMixed ? 'true' : 'false',
             aisle_after:  document.querySelector('input[name="aisle_after"]').value,
+            chart_title:  document.getElementById('chart-title')?.value || '',
         };
         for (const [k, v] of Object.entries(fields)) {
             const inp = document.createElement('input');

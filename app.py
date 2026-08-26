@@ -397,6 +397,7 @@ def generate_chart_from_form(singers=None) -> dict:
         'single_wide_parts': [] if mixed else find_single_wide_parts(chart, part_order),
         'part_grid_str': part_grid_str,
         'mixed': mixed,
+        'chart_title': request.form.get('chart_title', ''),
     }
 
 
@@ -429,6 +430,7 @@ def get_chart_data_from_form() -> dict:
         'single_wide_parts': [] if mixed else find_single_wide_parts(chart, part_order),
         'part_grid_str': request.form.get('part_grid', ''),
         'mixed': mixed,
+        'chart_title': request.form.get('chart_title', ''),
     }
 
 
