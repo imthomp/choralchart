@@ -43,16 +43,18 @@ def parse_csv(content: str) -> list[Singer]:
     Expects header row with at least 'name' and 'voice_part' columns.
     'height' column is optional.
     """
+    content = content.lstrip('﻿')  # strip UTF-8 BOM if present
     singers = []
     reader = csv.DictReader(io.StringIO(content))
     for row in reader:
         try:
             name = row.get('name', '').strip()
             voice_part = row.get('voice_part', '').strip()
-            height_str = row.get('height', '').strip()
-            if not name or not voice_part or not height_str:
+            if not name or not voice_part:
                 continue
-            singers.append(Singer(name=name, voice_part=voice_part, height=float(height_str)))
+            height_str = row.get('height', '').strip()
+            height = float(height_str) if height_str else None
+            singers.append(Singer(name=name, voice_part=voice_part, height=height))
         except (ValueError, KeyError):
             continue
     return singers
