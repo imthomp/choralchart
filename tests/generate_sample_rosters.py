@@ -24,7 +24,22 @@ def save_roster(singers, filename):
     print(f"Created {filename} with {len(singers)} singers")
 
 
+BYU_ROSTERS = [
+    ('byu_singers',           45,  ['Soprano', 'Alto', 'Tenor', 'Bass'],                         [13, 11, 10, 11]),
+    ('byu_concert_choir',     100, ['Soprano', 'Alto', 'Tenor', 'Bass'],                         [28, 27, 22, 23]),
+    ('byu_mens_chorus',       200, ['Tenor 1', 'Tenor 2', 'Baritone', 'Bass'],                   [50, 50, 50, 50]),
+    ('byu_womens_chorus',     200, ['Soprano 1', 'Soprano 2', 'Alto 1', 'Alto 2'],               [50, 50, 50, 50]),
+    ('byu_university_chorale',150, ['Soprano', 'Alto', 'Tenor', 'Bass'],                         [40, 35, 35, 40]),
+]
+
+
 if __name__ == '__main__':
+    print("--- BYU sample rosters ---")
+    for filename, total, parts, dist in BYU_ROSTERS:
+        singers = generate_random_roster(total, parts, distribution=dist)
+        save_roster(singers, f'{filename}.csv')
+
+    print("\n--- Test rosters ---")
     singers = generate_random_roster(50, ['Soprano', 'Alto', 'Tenor', 'Bass'], distribution=[15, 18, 8, 9])
     save_roster(singers, 'test_unequal_50.csv')
 

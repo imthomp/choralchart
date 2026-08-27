@@ -639,9 +639,7 @@ Jane Doe,Soprano,64.5</pre>
                 document.getElementById('tab-sample').style.display = name === 'sample' ? '' : 'none';
                 document.getElementById('tab-random').style.display = name === 'random' ? '' : 'none';
 
-                // Sample tab: Generate Chart button hidden (sample buttons are the trigger),
-                // but shared settings are shown so dimensions/arrangement can be configured first.
-                document.getElementById('generate-btn').style.display = name === 'sample' ? 'none' : '';
+                document.getElementById('generate-btn').style.display = '';
                 document.getElementById('shared-settings').style.display = '';
 
                 if (name === 'manual') {
@@ -650,17 +648,32 @@ Jane Doe,Soprano,64.5</pre>
                 } else if (name === 'random') {
                     document.getElementById('entry-type').value = 'random';
                     syncGridFromParts();
+                } else if (name === 'sample') {
+                    document.getElementById('entry-type').value = 'sample';
+                    // Restore grid for previously selected sample, or clear it
+                    const prevSample = document.getElementById('sample-name').value;
+                    if (prevSample && SAMPLE_PARTS[prevSample]) _syncGridItems(SAMPLE_PARTS[prevSample]);
                 }
-                // sample: entry-type is set by selectSample() at click time
             }
         }
 
-        // Sample roster buttons — set entry_type + sample_name, then submit via
-        // requestSubmit() so the submit event listener populates arrangement hidden fields.
+        const SAMPLE_PARTS = {
+            byu_singers:            ['Soprano', 'Alto', 'Tenor', 'Bass'],
+            byu_concert_choir:      ['Soprano', 'Alto', 'Tenor', 'Bass'],
+            byu_mens_chorus:        ['Tenor 1', 'Tenor 2', 'Baritone', 'Bass'],
+            byu_womens_chorus:      ['Soprano 1', 'Soprano 2', 'Alto 1', 'Alto 2'],
+            byu_university_chorale: ['Soprano', 'Alto', 'Tenor', 'Bass'],
+        };
+
+        // Sample roster buttons — select the sample (update grid + highlight) without submitting.
+        // The user adjusts arrangement/dimensions, then clicks Generate Chart.
         function selectSample(name) {
             document.getElementById('entry-type').value = 'sample';
             document.getElementById('sample-name').value = name;
-            document.getElementById('main-form').requestSubmit();
+            if (SAMPLE_PARTS[name]) _syncGridItems(SAMPLE_PARTS[name]);
+            // Highlight selected button
+            document.querySelectorAll('#tab-sample .btn').forEach(b => b.classList.remove('active'));
+            event.currentTarget.classList.add('active');
         }
 
         // Wire parts field to sync grid
@@ -679,8 +692,14 @@ Jane Doe,Soprano,64.5</pre>
         });
 
         // On submit: collect names (manual only) and populate arrangement hidden fields
-        document.getElementById('main-form').addEventListener('submit', function() {
+        document.getElementById('main-form').addEventListener('submit', function(e) {
             const entryType = document.getElementById('entry-type').value;
+
+            if (entryType === 'sample' && !document.getElementById('sample-name').value) {
+                e.preventDefault();
+                alert('Please select a sample roster first.');
+                return;
+            }
 
             if (entryType === 'manual') {
                 document.querySelectorAll('.part-section').forEach(section => {
@@ -715,6 +734,9 @@ Jane Doe,Soprano,64.5</pre>
                     document.getElementById('idx-part-order-hidden').value =
                         Array.from(document.querySelectorAll('#sections-list input[name="part_name"]'))
                             .map(i => i.value.trim()).filter(Boolean).join(',');
+                } else if (entryType === 'sample') {
+                    document.getElementById('idx-part-order-hidden').value =
+                        (SAMPLE_PARTS[document.getElementById('sample-name').value] || []).join(',');
                 } else {
                     document.getElementById('idx-part-order-hidden').value =
                         document.getElementById('parts').value.split(',').map(p => p.trim()).filter(Boolean).join(',');
