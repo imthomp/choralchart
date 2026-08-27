@@ -238,11 +238,11 @@ Jane Doe,Soprano,64.5</pre>
                     <p style="margin-bottom: 1rem; color: var(--text-placeholder); font-size: 0.78rem; font-style: italic;">⚠ These are fictional placeholder rosters for demo purposes only — not real BYU student data.</p>
 
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_singers')">BYU Singers — 45 singers (SATB)</button>
-                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_concert_choir')">BYU Concert Choir — 100 singers (SATB)</button>
-                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_mens_chorus')">BYU Men's Chorus — 200 singers (TTBB)</button>
-                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_womens_chorus')">BYU Women's Chorus — 200 singers (SSAA)</button>
-                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_university_chorale')">BYU University Chorale — 150 singers (SATB)</button>
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_singers')">Sample BYU Singers — 45 singers (SATB)</button>
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_concert_choir')">Sample BYU Concert Choir — 100 singers (SATB)</button>
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_mens_chorus')">Sample BYU Men's Chorus — 200 singers (TTBB)</button>
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_womens_chorus')">Sample BYU Women's Chorus — 200 singers (SSAA)</button>
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_university_chorale')">Sample BYU University Chorale — 150 singers (SATB)</button>
                     </div>
                 </div>
 
@@ -639,10 +639,10 @@ Jane Doe,Soprano,64.5</pre>
                 document.getElementById('tab-sample').style.display = name === 'sample' ? '' : 'none';
                 document.getElementById('tab-random').style.display = name === 'random' ? '' : 'none';
 
-                // Sample tab: no Generate Chart button or shared settings (buttons submit directly)
-                const isSample = name === 'sample';
-                document.getElementById('generate-btn').style.display = isSample ? 'none' : '';
-                document.getElementById('shared-settings').style.display = isSample ? 'none' : '';
+                // Sample tab: Generate Chart button hidden (sample buttons are the trigger),
+                // but shared settings are shown so dimensions/arrangement can be configured first.
+                document.getElementById('generate-btn').style.display = name === 'sample' ? 'none' : '';
+                document.getElementById('shared-settings').style.display = '';
 
                 if (name === 'manual') {
                     document.getElementById('entry-type').value = 'manual';
@@ -655,11 +655,12 @@ Jane Doe,Soprano,64.5</pre>
             }
         }
 
-        // Sample roster buttons — set entry_type + sample_name and submit
+        // Sample roster buttons — set entry_type + sample_name, then submit via
+        // requestSubmit() so the submit event listener populates arrangement hidden fields.
         function selectSample(name) {
             document.getElementById('entry-type').value = 'sample';
             document.getElementById('sample-name').value = name;
-            document.getElementById('main-form').submit();
+            document.getElementById('main-form').requestSubmit();
         }
 
         // Wire parts field to sync grid
