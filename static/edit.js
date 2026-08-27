@@ -54,11 +54,7 @@ if (CHART_CONFIG.editable) {
             container.classList.remove('staggered');
             hiddenStaggered.value = 'false';
         }
-        document.querySelectorAll('.row-label').forEach(lbl => {
-            lbl.style.transition = 'opacity 0.18s ease';
-            lbl.style.opacity = '0.3';
-            setTimeout(() => { lbl.style.opacity = '1'; }, 180);
-        });
+        checkHeightWarnings();
     });
 
     // Height toggle
@@ -216,6 +212,38 @@ if (CHART_CONFIG.editable) {
         checkHeightWarnings();
     }
 
+    function shiftSeats(sourceEl, targetEl) {
+        const sourceRow = sourceEl.closest('.chart-row');
+        const targetRow = targetEl.closest('.chart-row');
+
+        if (sourceRow !== targetRow) {
+            swapSeats(sourceEl, targetEl);
+            return;
+        }
+
+        const seats = Array.from(sourceRow.querySelectorAll('.seat'));
+        const srcIdx = seats.indexOf(sourceEl);
+        const dstIdx = seats.indexOf(targetEl);
+        if (srcIdx === dstIdx) return;
+
+        const singers = seats.map(s => s.dataset.singer !== 'null' ? JSON.parse(s.dataset.singer) : null);
+        const [moved] = singers.splice(srcIdx, 1);
+        singers.splice(dstIdx, 0, moved);
+        seats.forEach((s, i) => updateSeatDisplay(s, singers[i]));
+
+        const lo = Math.min(srcIdx, dstIdx);
+        const hi = Math.max(srcIdx, dstIdx);
+        seats.slice(lo, hi + 1).forEach(s => {
+            s.classList.add('swapping');
+            s.addEventListener('animationend', () => s.classList.remove('swapping'), { once: true });
+        });
+
+        updateChartData();
+        pushHistory();
+        updateStaggerOffsets();
+        checkHeightWarnings();
+    }
+
     function updateChartData() {
         const rows = document.querySelectorAll('.chart-row');
         const chartData = [];
@@ -245,11 +273,19 @@ if (CHART_CONFIG.editable) {
         if (!seat) return;
 
         if (!seat.classList.contains('draggable')) {
-            // Empty seat — complete a pending selection swap
+            const now = Date.now();
             if (selectedSeat) {
+                // Complete a pending selection swap
                 swapSeats(selectedSeat, seat);
                 selectedSeat.classList.remove('selected');
                 selectedSeat = null;
+                lastTapInfo = { el: null, time: 0 };
+            } else if (lastTapInfo.el === seat && now - lastTapInfo.time < 350) {
+                // Double-tap on empty seat: create a new singer here
+                openCreateModal(seat);
+                lastTapInfo = { el: null, time: 0 };
+            } else {
+                lastTapInfo = { el: seat, time: now };
             }
             return;
         }
@@ -331,7 +367,7 @@ if (CHART_CONFIG.editable) {
         if (currentTarget) currentTarget.classList.remove('drag-over');
 
         if (moved) {
-            if (currentTarget) swapSeats(sourceEl, currentTarget);
+            if (currentTarget) shiftSeats(sourceEl, currentTarget);
         } else {
             // Tap — check for double-tap (opens modal) or single tap (select/swap)
             const now = Date.now();
@@ -370,6 +406,7 @@ if (CHART_CONFIG.editable) {
 
     // Modal functionality
     let editingSeat = null;
+    let editingIsNew = false;
 
     function parseHeightInput(str) {
         str = (str || '').trim();
@@ -389,6 +426,9 @@ if (CHART_CONFIG.editable) {
 
     function openModal(seatEl, singer) {
         editingSeat = seatEl;
+        editingIsNew = false;
+        document.getElementById('modal-title').textContent = 'Edit Singer';
+        document.getElementById('modal-remove-btn').style.display = '';
         document.getElementById('modal-name').value = singer.name;
         document.getElementById('modal-height').value = heightToInputStr(singer.height);
         document.getElementById('modal-part').value = singer.voice_part;
@@ -396,16 +436,31 @@ if (CHART_CONFIG.editable) {
         setTimeout(() => document.getElementById('modal-name').select(), 10);
     }
 
+    function openCreateModal(seatEl) {
+        editingSeat = seatEl;
+        editingIsNew = true;
+        document.getElementById('modal-title').textContent = 'Add Singer';
+        document.getElementById('modal-remove-btn').style.display = 'none';
+        document.getElementById('modal-name').value = '';
+        document.getElementById('modal-height').value = '';
+        document.getElementById('modal-part').value = CHART_CONFIG.partOrder[0] || '';
+        document.getElementById('edit-modal').classList.add('active');
+        setTimeout(() => document.getElementById('modal-name').focus(), 10);
+    }
+
     function closeModal() {
         editingSeat = null;
+        editingIsNew = false;
         document.getElementById('edit-modal').classList.remove('active');
     }
 
     function savePart() {
         if (!editingSeat) return;
-        const singer = JSON.parse(editingSeat.dataset.singer);
         const newName = document.getElementById('modal-name').value.trim();
         if (!newName) { document.getElementById('modal-name').focus(); return; }
+        const singer = editingIsNew
+            ? { name: newName, voice_part: document.getElementById('modal-part').value, height: null }
+            : JSON.parse(editingSeat.dataset.singer);
         singer.name = newName;
         singer.height = parseHeightInput(document.getElementById('modal-height').value);
         singer.voice_part = document.getElementById('modal-part').value;
@@ -419,6 +474,7 @@ if (CHART_CONFIG.editable) {
     // Expose modal functions for onclick attributes
     window.closeModal = closeModal;
     window.savePart = savePart;
+    window.openCreateModal = openCreateModal;
 
     document.getElementById('edit-modal').addEventListener('click', (e) => {
         if (e.target.id === 'edit-modal') closeModal();
@@ -443,21 +499,47 @@ if (CHART_CONFIG.editable) {
 
     // --- Height warnings ---
     function checkHeightWarnings() {
-        document.querySelectorAll('.seat.height-warn').forEach(el => el.classList.remove('height-warn'));
+        document.querySelectorAll('.seat.height-warn, .seat.height-warn-back')
+            .forEach(el => el.classList.remove('height-warn', 'height-warn-back'));
 
         const isStaggered = document.querySelector('.chart-container').classList.contains('staggered');
         const rows = Array.from(document.querySelectorAll('.chart-row'));
+
         for (let i = 0; i < rows.length - 1; i++) {
             const backRow = rows[i];
             const frontRow = rows[i + 1];
-            const backIsOffset = backRow.classList.contains('stagger-offset');
-            const frontIsOffset = frontRow.classList.contains('stagger-offset');
+
+            // Compute the visual x-offset of front[p] relative to back[p] (in px).
+            // This accounts for both CSS centering (rows with different singer counts are
+            // centered independently, creating a natural half-stride offset when the count
+            // difference is odd) and the explicit stagger-offset translateX.
+            //
+            // offset = 64*(n_b - n_f) + (p_b - p_f)*128 + (stagger_f - stagger_b)
+            //   where p_b/p_f = first filled data-pos in each row (algorithm centering offset)
+            //   and stagger_f/stagger_b = 64 if that row has translateX applied, else 0
+            const n_b = backRow.querySelectorAll('.seat:not(.empty)').length;
+            const n_f = frontRow.querySelectorAll('.seat:not(.empty)').length;
+            const firstBackEl  = backRow.querySelector('.seat:not(.empty)');
+            const firstFrontEl = frontRow.querySelector('.seat:not(.empty)');
+            const p_b = firstBackEl  ? parseInt(firstBackEl.dataset.pos)  : 0;
+            const p_f = firstFrontEl ? parseInt(firstFrontEl.dataset.pos) : 0;
+            const stagger_b = (isStaggered && backRow.classList.contains('stagger-offset'))  ? 64 : 0;
+            const stagger_f = (isStaggered && frontRow.classList.contains('stagger-offset')) ? 64 : 0;
+            const offset = 64 * (n_b - n_f) + (p_b - p_f) * 128 + (stagger_f - stagger_b);
+
+            // Find back data-pos values within ±64px (half-stride) of each front seat.
+            // q_lo_d and q_hi_d are the delta from front data-pos to back data-pos.
+            const q_lo_d = Math.ceil((offset - 64) / 128);
+            const q_hi_d = Math.floor((offset + 64) / 128);
 
             const backHeights = {};
+            const backSeatEls = {};
             backRow.querySelectorAll('.seat:not(.empty)').forEach(seat => {
                 const singer = JSON.parse(seat.dataset.singer);
                 if (singer && singer.height !== null) {
-                    backHeights[parseInt(seat.dataset.pos)] = singer.height;
+                    const p = parseInt(seat.dataset.pos);
+                    backHeights[p] = singer.height;
+                    backSeatEls[p] = seat;
                 }
             });
 
@@ -465,22 +547,14 @@ if (CHART_CONFIG.editable) {
                 const singer = JSON.parse(seat.dataset.singer);
                 if (!singer || singer.height === null) return;
                 const pos = parseInt(seat.dataset.pos);
-                let posesToCheck;
-                if (isStaggered) {
-                    if (frontIsOffset && !backIsOffset) {
-                        posesToCheck = [pos, pos + 1];
-                    } else if (!frontIsOffset && backIsOffset) {
-                        posesToCheck = [pos - 1, pos];
-                    } else {
-                        posesToCheck = [pos];
+                let warned = false;
+                for (let dq = q_lo_d; dq <= q_hi_d; dq++) {
+                    const bh = backHeights[pos + dq];
+                    if (bh !== undefined && singer.height > bh) {
+                        warned = true;
+                        backSeatEls[pos + dq].classList.add('height-warn-back');
                     }
-                } else {
-                    posesToCheck = [pos];
                 }
-                const warned = posesToCheck.some(p => {
-                    const bh = backHeights[p];
-                    return bh !== undefined && singer.height > bh;
-                });
                 if (warned) seat.classList.add('height-warn');
             });
         }
@@ -805,6 +879,8 @@ if (CHART_CONFIG.editable) {
             part_grid:    newPartGrid,
             layout:       newLayout,
             num_singers:  document.querySelector('input[name="num_singers"]').value,
+            rows:         document.querySelector('input[name="rows"]')?.value || '',
+            max_per_row:  document.querySelector('input[name="max_per_row"]')?.value || '',
             staggered:    document.querySelector('input[name="staggered"]').value,
             flipped:      document.querySelector('input[name="flipped"]').value,
             mixed:        isMixed ? 'true' : 'false',
@@ -849,6 +925,10 @@ function exportImage() {
             p.style.overflow = 'visible';
             p.style.width = fullW + 'px';
             p.style.minWidth = 'unset';
+
+            // Remove height warning highlights from the exported image
+            clonedDoc.querySelectorAll('.height-warn, .height-warn-back')
+                .forEach(el => el.classList.remove('height-warn', 'height-warn-back'));
 
             // Inject title above the chart
             if (titleVal) {

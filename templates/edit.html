@@ -83,6 +83,7 @@
         html[data-theme="dark"] .single-wide-warning { background: #431407; border-color: #ea580c; color: #fb923c; }
         html[data-theme="light"] .single-wide-warning { background: #fff0e6; border-color: #fd7e14; color: #7d3c00; }
         .seat.height-warn { box-shadow: inset 0 0 0 2px #f97316; }
+        .seat.height-warn-back { box-shadow: inset 0 0 0 2px #fb923c; opacity: 0.75; }
 
         .btn-danger {
             background-color: #dc2626;
@@ -192,8 +193,7 @@
             display: flex; flex-direction: column; align-items: center;
             width: max-content; min-width: 100%; margin: 0 auto;
         }
-        .chart-row { justify-content: flex-start; }
-        .chart-container.staggered .chart-row { justify-content: center; }
+        .chart-row { justify-content: center; }
         .conductor-label {
             display: inline-block;
             background: linear-gradient(135deg, #1e3a5f 0%, #2c3e50 100%);
@@ -263,7 +263,7 @@
         <!-- Singer edit modal -->
         <div class="modal-overlay" id="edit-modal">
             <div class="modal">
-                <h3>Edit Singer</h3>
+                <h3 id="modal-title">Edit Singer</h3>
                 <div class="modal-field">
                     <label for="modal-name">Name</label>
                     <input type="text" id="modal-name" style="width:100%; padding:0.5rem 0.75rem; border:2px solid var(--border); border-radius:8px; font-size:1rem; background:var(--surface);">
@@ -282,7 +282,7 @@
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="button" class="btn-danger" onclick="removeSinger()">Remove</button>
+                    <button type="button" id="modal-remove-btn" class="btn-danger" onclick="removeSinger()">Remove</button>
                     <button type="button" class="btn btn-primary" onclick="savePart()">Save</button>
                 </div>
             </div>
@@ -411,6 +411,8 @@
         <input type="hidden" name="part_grid" value="{{ part_grid_str }}">
         <input type="hidden" name="layout" value="{{ layout }}">
         <input type="hidden" name="num_singers" value="{{ num_singers }}">
+        <input type="hidden" name="rows" value="{{ rows }}">
+        <input type="hidden" name="max_per_row" value="{{ seats_per_row }}">
         <input type="hidden" name="flipped" value="{{ 'true' if flipped else 'false' }}">
         <input type="hidden" name="staggered" value="{{ 'true' if staggered else 'false' }}">
         <input type="hidden" name="mixed" value="{{ 'true' if mixed else 'false' }}">
@@ -424,14 +426,11 @@
             <button type="button" id="btn-redo" onclick="redo()" class="btn btn-secondary" disabled>&#8618; Redo</button>
             <button type="button" onclick="reshuffleChart()" class="btn btn-secondary">Re-shuffle</button>
             <button type="button" onclick="saveChart()" class="btn btn-secondary">Save chart</button>
-            <button type="button" id="btn-share" onclick="shareChart()" class="btn btn-secondary">Share link</button>
             <button type="button" onclick="exportImage()" class="btn btn-success">Save as Image</button>
         </div>
-        <div id="share-banner" style="display:none; margin-top:0.75rem; padding:0.75rem 1rem; background:var(--brand-bg); border:1px solid var(--brand-border); border-radius:8px; font-size:0.875rem; color:var(--brand); align-items:center; gap:0.75rem; flex-wrap:wrap;">
-            <span>Shared link:</span>
-            <a id="share-url" href="#" target="_blank" style="word-break:break-all;"></a>
-            <button type="button" onclick="copyShareUrl()" class="btn btn-secondary" style="padding:0.25rem 0.75rem; min-width:unset; font-size:0.8rem;">Copy</button>
-            <button type="button" onclick="shareChart()" class="btn btn-secondary" style="padding:0.25rem 0.75rem; min-width:unset; font-size:0.8rem;">Update</button>
+        <!-- Share link disabled until FERPA-compliant strategy is in place -->
+        <div id="share-banner" style="display:none;">
+            <input type="hidden" id="share-url" value="">
         </div>
         {% else %}
         <div class="actions">

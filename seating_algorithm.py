@@ -580,13 +580,17 @@ def calculate_dimensions_with_user_input(
         Tuple of (rows, seats_per_row)
     """
     if user_rows and user_max_per_row:
-        # User specified both - use as-is
-        return user_rows, user_max_per_row
+        # Don't create more rows than needed — clamp to avoid 1-singer-per-row situations
+        needed_rows = math.ceil(num_singers / user_max_per_row)
+        effective_rows = min(user_rows, max(needed_rows, 1))
+        return effective_rows, user_max_per_row
 
     if user_rows and not user_max_per_row:
         # User specified rows only - calculate seats per row
-        seats_per_row = math.ceil(num_singers / user_rows)
-        return user_rows, seats_per_row
+        # Clamp rows so we don't spread singers thinner than makes sense
+        effective_rows = min(user_rows, num_singers)
+        seats_per_row = math.ceil(num_singers / effective_rows)
+        return effective_rows, seats_per_row
 
     if user_max_per_row and not user_rows:
         # User specified max per row only - calculate rows

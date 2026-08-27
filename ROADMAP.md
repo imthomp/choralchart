@@ -2,91 +2,110 @@
 
 Effort and impact are rated Low / Med / High.
 ★ = came directly from assistant director feedback (Feb 2026).
+▲ = BYU client requirement (Sep 1, 2026 deadline).
 
 ---
 
-## From the Assistant Director
+## Sep 1 Sprint — High Priority
 
-| Branch | Idea | Effort | Impact |
-|--------|------|--------|--------|
-| ~~`fix/layout-polish`~~ | ~~Never allow a section to be one person wide (warn) ★~~ | ~~Low~~ | ~~High~~ |
-| ~~`feature/ordering`~~ | ~~Up/down row ordering, not just left/right ★~~ | ~~Med~~ | ~~High~~ |
-| ~~`feature/roster-management`~~ | ~~Singer withdrawal: adjust row without full rebuild ★~~ | ~~Med~~ | ~~High~~ |
-| ~~`feature/roster-management`~~ | ~~.xlsx input support (real-world rosters from Excel) ★~~ | ~~Med~~ | ~~Med~~ |
-| ~~`feature/mixed-seating`~~ | ~~Shuffle/mix mode: no same-voice-part neighbors ★~~ | ~~Med~~ | ~~Med~~ |
-| ~~`feature/undo-redo`~~ | ~~Undo/redo for drag-and-drop and edits ★~~ | ~~High~~ | ~~High~~ |
-| ~~`feature/sharing`~~ | ~~Shareable link to send chart to students ★~~ | ~~High~~ | ~~High~~ |
-| ~~`feature/sharing`~~ | ~~"Living document" link that updates in place ★~~ | ~~High~~ | ~~High~~ |
-| ~~`feature/persistence`~~ | ~~Save and reload charts across sessions ★~~ | ~~High~~ | ~~High~~ |
-| ~~`feature/piece-specific-roles`~~ | ~~Piece-specific role assignment (cross-part roles) ★~~ | ~~High~~ | ~~Med~~ |
+These are high-leverage features to build before the BYU semester starts.
+
+| Branch | Feature | Effort | Why |
+|--------|---------|--------|-----|
+| `feature/find-by-name` | **Find singer by name** — search box that highlights their seat ▲ | Low | Essential for large choirs; director needs to locate people fast during rehearsal |
+| `feature/absent-mode` | **Mark absent** — grey out a seat without removing the singer; they keep their position ▲ | Low | Day 1 of class someone won't show up; removing loses their seat permanently |
+| `feature/part-highlight` | **Highlight by voice part** — click a legend item to dim all other parts ▲ | Low | Directing people to seats in a live rehearsal; "tenors, look at your highlighted seats" |
+| `feature/seat-lock` | **Lock a seat** — pin a singer so they don't move when reshuffling ▲ | Low | Section leaders and soloists must stay anchored across arrangement changes |
+| `feature/share-password` | **Password-protect share links** — director sets a password; viewers must enter it ▲ | Low | FERPA: names on a public URL without access control is non-compliant |
+| `feature/data-deletion` | **Delete a shared chart** — remove it by ID so names come off the server ▲ | Low | FERPA: directors need a way to remove student data they no longer need |
+| `qa/cross-platform` | **Cross-platform QA** — Windows, macOS, iOS Safari, Android Chrome; drag-and-drop on iPad ▲ | Med | BYU students will use every platform; touch drag must work reliably |
+
+---
+
+## Sep 1 Sprint — Useful but Lower Urgency
+
+| Branch | Feature | Effort | Notes |
+|--------|---------|--------|-------|
+| `feature/student-view` | **Student "where do I sit" view** — read-only share page with name search, returns row + seat number | Low | Cleaner than sending the full editable chart; avoids sharing the whole roster |
+| `feature/autosave` | **Autosave to localStorage** — crash recovery prompt on next load | Med | Tab closes unexpectedly = all work lost; this is a silent safety net |
+| `feature/annotations` | **Notes per singer** — small text field in the edit modal ("new student", "solo upcoming") | Low | Singer-specific context without cluttering the chart |
+| `feature/pdf-export` | **PDF export** — page margins, title, legend, fits one sheet | High | PNG works for most cases but PDF is easier to print at scale |
+| `feature/url-share` | **URL-encoded share** — compress chart into URL param, no server storage ▲ | Med | Eliminates server-side name storage entirely; full FERPA resolution |
+| `feature/byu-roster-import` | **BYU roster import** — import from their actual roster format (confirm format with dept) ▲ | Med | Directors shouldn't be re-entering names they already have in a university system |
+
+---
+
+## Post-September
+
+| Branch | Feature | Effort | Notes |
+|--------|---------|--------|-------|
+| `feature/venue-templates` | BYU venue layout templates — HFAC concert hall, rehearsal room, etc. ▲ | High | Correct row shapes and counts pre-built; director picks the hall |
+| `feature/ensemble-label` | Ensemble name / semester label on the chart | Low | "BYU Singers — Fall 2026" as a subtitle below the title |
+| `feature/height-suggest` | "Fix height warnings" button — auto-swaps flagged pairs to resolve violations | Med | Currently the director has to identify and fix manually |
+| `feature/keyboard-nav` | Full keyboard navigation — Tab through seats, Enter to select/swap | Med | Accessibility; also faster for directors who prefer keyboard |
+| `feature/qr-code` | QR code on chart — links to live share; print it at the bottom | Low | Students scan from the printed chart instead of typing a URL |
+| `feature/local-chart-list` | localStorage "your charts" list on home page — no login required | Low | Directors return to recent charts without bookmarking share links |
+| `feature/preserve-edits` | Re-applying an arrangement preserves manual seat swaps | High | Currently reshuffling discards all manual adjustments |
+| `feature/snapshots` | Named chart snapshots — "save as December concert" | Med | Multiple pieces per semester need separate charts without re-entering rosters |
+| `feature/ferpa-mode` | "Seats only" share — positions visible, names hidden from shared view | Med | Alternative to password-protect for public concert programs |
+| `feature/roster-merge` | Merge two rosters — combined ensemble import | Med | Mass choir or combined ensemble scenario |
+| `feature/fork-chart` | "Use as template" — fork a shared chart to customize for a different piece | Low | Reuse layout between similar-sized choirs or semesters |
+| `feature/print-css` | CSS `@print` stylesheet — clean browser print without PNG export | Low | Fallback for directors without time to export |
 
 ---
 
 ## Known Bugs
 
-These are confirmed gaps in the current implementation, not feature requests.
-
 | Branch | Bug | Effort |
 |--------|-----|--------|
-| `fix/aisle-persist` | Aisle position not saved to SQLite or `.choralchart` — lost on share link and file reload | Low |
-| `fix/export-completeness` | PNG export captures only the seat grid — chart title, legend, and conductor label are excluded | Low |
-| `fix/part-rename` | Changing a singer's voice part to one outside `part_order` orphans them — wrong color, missing from legend | Low |
+| ~~`fix/aisle-persist`~~ | ~~Aisle position not saved to SQLite or `.choralchart`~~ | ✓ already working |
+| ~~`fix/export-completeness`~~ | ~~PNG export captures only the seat grid~~ | ✓ legend/conductor always in panel; title fixed |
+| ~~`fix/part-rename`~~ | ~~Changing a singer's voice part to one outside `part_order` orphans them~~ | ✓ modal is a select — can't pick outside part_order |
 | `fix/concurrent-edit` | Concurrent "Update" on the same share link silently overwrites — last write wins, no warning | Low |
+| `fix/height-warning-mode` | Height warning fires if taller than *any* person behind (`.some()`); should require *all* people behind to be shorter? Needs director input | Low |
 
 ---
 
-## High Impact
+## FERPA / Privacy Summary
 
-| Branch | Idea | Effort | Impact |
-|--------|------|--------|--------|
-| `feature/annotations` | Per-singer or per-section notes | Med | High |
-| `feature/pdf-export` | PDF export — page margins, legend, header, fits one sheet | High | High |
-| `feature/chart-diff` | Diff view — compare two `.choralchart` files, highlight changes | High | High |
-| `feature/snapshots` | Named chart snapshots — "save as December concert" without leaving the editor | Med | High |
-| `feature/autosave` | localStorage autosave with recovery prompt on next load — safety net if browser crashes | Med | High |
-| `feature/onboarding` | First-run experience — "here's what you'll build" preview or one-click demo chart | Med | High |
-| `feature/load-sample` | "Load sample" opens a curated demo chart (pre-staggered, mixed voices) that shows the tool at its best — not just a generic SATB roster | Low | High |
-| `feature/preserve-edits` | Re-applying an arrangement preserves manual seat swaps instead of regenerating from scratch | High | High |
-| `feature/ensembles` | Ensemble/org concept — group charts, share singers across rosters, reuse layout templates | High | High |
+The tool currently stores student names on Fly.io with public share links and no access control. Priority order for compliance:
 
----
-
-## Medium Impact
-
-| Branch | Idea | Effort | Impact |
-|--------|------|--------|--------|
-| `feature/fork-chart` | "Use as template" on read-only shared view — fork and customize | Low | Med |
-| `feature/custom-colors` | Custom part colors — directors map voice parts to their own palette | Med | Med |
-| `qa/mobile` | Touch/mobile pass — drag-and-drop on tablets, narrow layout for shared view | Med | Med |
-| `feature/sub-parts` | Voice range within a part — S1/S2, T1/T2 as an optional sub-section field | Low | Med |
-| `feature/seniority` | Seniority/experience tier field — optional number or label per singer for anchor positioning | Low | Med |
-| `feature/url-share` | URL-encoded serverless share — compress chart into base64 URL param, no server required | Med | Med |
-| `feature/roster-merge` | Merge two rosters — combined ensemble import without re-entering singers manually | Med | Med |
-
----
-
-## Small But Useful
-
-| Branch | Idea | Effort | Impact |
-|--------|------|--------|--------|
-| `feature/headcount-bar` | Section headcount summary (e.g. S: 12 · A: 11 · T: 8 · B: 9) above the chart | Low | Med |
-| `feature/height-coverage` | Height coverage indicator — "height data: 8/40 singers" near the height toggle so directors know if sorting is actually working | Low | Med |
-| `fix/dismissible-warnings` | Per-pair height warning dismissal — suppress intentional placements (soloists, etc.) | Med | Med |
-| `fix/bulk-paste` | Narrow accepted height formats; inline validation instead of silent fallback | Low | Low |
-| `fix/part-label-assumptions` | Ensure part names are always exactly what the director typed — no baked-in label logic | Low | Low |
-| `feature/share-feedback` | "Suggest a change" path on read-only shared view — way to contact the director | Low | Low |
+1. `feature/share-password` — password-protect links (low effort, immediate improvement)
+2. `feature/data-deletion` — directors can remove stored charts
+3. `feature/url-share` — eliminate server-side name storage entirely
+4. `feature/ferpa-mode` — names-only-for-director option
+5. `feature/byu-sso` — BYU CAS/SSO gate (right answer long-term, overkill before accounts exist)
 
 ---
 
 ## Accounts — Phased Approach
 
-Don't add accounts until localStorage soft-identity is in place and the ensembles feature becomes real. Zero-friction onboarding is a competitive advantage — don't gate it.
+Don't add accounts until localStorage soft-identity is in place. Zero-friction onboarding is a competitive advantage — don't gate it early.
 
 | Phase | Branch | What | Effort |
 |-------|--------|------|--------|
-| 1 | `feature/local-chart-list` | localStorage "your charts" list on home page — remember chart IDs locally, no login required | Low |
-| 2 | `feature/ensembles` | Ensemble grouping (see High Impact) — the point where soft identity stops being enough | High |
-| 3 | `feature/accounts` | Real accounts with Google OAuth only — no passwords. Migrate localStorage chart list into account on first sign-in | High |
+| 1 | `feature/local-chart-list` | localStorage "your charts" — no login required | Low |
+| 2 | `feature/ensembles` | Ensemble grouping — when soft identity stops being enough | High |
+| 3 | `feature/accounts` | Google OAuth only, no passwords. Migrate localStorage on first sign-in | High |
+
+---
+
+## From the Assistant Director ★
+
+All done.
+
+| Feature | Status |
+|---------|--------|
+| Never allow a section to be one person wide (warn) | ✓ |
+| Up/down row ordering, not just left/right | ✓ |
+| Singer withdrawal: adjust row without full rebuild | ✓ |
+| .xlsx input support | ✓ |
+| Shuffle/mix mode: no same-voice-part neighbors | ✓ |
+| Undo/redo for drag-and-drop and edits | ✓ |
+| Shareable link to send chart to students | ✓ |
+| "Living document" link that updates in place | ✓ |
+| Save and reload charts across sessions | ✓ |
+| Piece-specific role assignment (cross-part roles) | ✓ |
 
 ---
 
@@ -94,31 +113,10 @@ Don't add accounts until localStorage soft-identity is in place and the ensemble
 
 | Area | Note |
 |------|------|
-| Undo/redo | Stack has no limit or persistence — clarify in UI that history is lost on tab close |
-| Arrangement panel discoverability | Collapsed by default helps power users but new users won't find it — consider one-time hint |
-| Share link server dependency | All shared links break if Render goes down — URL-encoded share is a fallback worth building |
-
----
-
-## Other Ideas
-
-| Branch | Idea | Effort | Impact |
-|--------|------|--------|--------|
-| ~~`feature/save-load`~~ | ~~Save chart to a file and reload it later (JSON export/import)~~ | ~~Low~~ | ~~High~~ |
-| ~~`fix/layout-polish`~~ | ~~View full roster with scrolling on smaller windows~~ | ~~Low~~ | ~~Med~~ |
-| ~~`fix/export`~~ | ~~Save full image snapshot from smaller windows (html2canvas clips on small viewports)~~ | ~~Low~~ | ~~Med~~ |
-| ~~`fix/layout-polish`~~ | ~~Centeredness shifts when scrollbar appears/disappears~~ | ~~Low~~ | ~~Med~~ |
-| ~~`fix/layout-polish`~~ | ~~Conductor label not centered (row label throws it off)~~ | ~~Low~~ | ~~Med~~ |
-| ~~`feature/branding`~~ | ~~Add favicon~~ | ~~Low~~ | ~~Low~~ |
-| `feature/branding` | Add logo | Low | Med |
-| ~~`fix/layout-polish`~~ | ~~"Enter your roster" input styling matches other text boxes~~ | ~~Low~~ | ~~Low~~ |
-| ~~`feature/sample-rosters`~~ | ~~Ship sample CSVs (SATB, Men's, Women's, etc.)~~ | ~~Low~~ | ~~Med~~ |
-| ~~`fix/layout-polish`~~ | ~~Seat number toggle from either edge or both~~ | ~~Low~~ | ~~Low~~ |
-| ~~`feature/height-warning`~~ | ~~Warn when a tall singer is placed in front of a shorter one~~ | ~~Low~~ | ~~High~~ |
-| ~~`fix/stagger`~~ | ~~Stagger/grid switch (fix odd/even centering ghost-stagger)~~ | ~~Med~~ | ~~Med~~ |
-| ~~`fix/layout-polish`~~ | ~~Include empty chairs on edges option~~ | ~~Med~~ | ~~Low~~ |
-| ~~`feature/animations`~~ | ~~Animate flip, drag-and-drop, height toggle~~ | ~~Med~~ | ~~Low~~ |
-| `qa/cross-platform` | Test on Windows, macOS, iOS, Android browsers | Med | High |
+| Undo/redo | Stack has no limit or persistence — history is lost on tab close |
+| Arrangement panel discoverability | Collapsed by default; new users may not find it — consider a one-time hint |
+| Share link server dependency | All links break if Fly.io goes down — `feature/url-share` is the durable fallback |
+| Height warning sensitivity | `.some()` vs `.every()` — get director input before changing; intentional placements exist |
 
 ---
 
@@ -126,8 +124,10 @@ Don't add accounts until localStorage soft-identity is in place and the ensemble
 
 | Branch | Idea | Notes |
 |--------|------|-------|
-| `feature/curved-rows` | Curved rows | Removed from UI — code on branch, known visual bugs |
-| `feature/piece-specific-roles` | Complicated/combined ensemble layouts | Needs design work before implementation |
+| `feature/curved-rows` | Curved rows | Code on branch, known visual bugs — removed from UI |
+| `feature/byu-sso` | BYU CAS/SSO login | Right answer long-term but overkill before ensembles exist |
+| `feature/multi-chart` | Side-by-side chart comparison | Complex for limited benefit vs snapshots |
+| `feature/chart-diff` | Diff two `.choralchart` files | Niche; snapshots + visual comparison handles most cases |
 
 ---
 
@@ -135,42 +135,39 @@ Don't add accounts until localStorage soft-identity is in place and the ensemble
 
 | Feature | Notes |
 |---------|-------|
+| Uniform row widths | Side-by-side now fills all rows evenly (Bresenham) — 40 SATB → 4×10, not 2×12+2×8 |
+| Chart title persistence | Title survives Apply arrangement and page reloads |
+| 102 pytest tests | Algorithm, routes, encode/decode, stagger offsets, random roster, variable row sizes, share flow |
+| Pointer Events drag/drop | Mouse + touch/iPad; float clone follows pointer; double-tap opens modal |
 | Favicon | SVG grid icon matching app colors |
-| Sample rosters | SATB (40), Men's (20), Women's (20) CSVs downloadable from upload form |
-| Roster preview | Collapsible singer list on configure page to verify imports |
-| Seat number toggle | Left edge / right edge / both edges picker in edit page |
-| Ghost-stagger fix | Non-staggered rows now left-align within centered block; no centering drift |
-| Empty chairs option | "Show empty chairs" toggle reveals placeholder dashed seats at row edges |
+| Sample rosters | SATB (40), Men's (20), Women's (20) |
+| Roster preview | Collapsible singer list on configure page |
+| Seat number toggle | Left edge / right edge / both edges |
+| Ghost-stagger fix | Non-staggered rows left-align within centered block |
+| Empty chairs option | Dashed placeholder seats at row edges |
 | Flip animation | Smooth scaleY flip when toggling chart direction |
-| Swap flash | Brief brightness flash when two seats swap positions |
-| Height fade | Height labels fade in/out instead of snapping |
-| html2canvas small-viewport fix | windowWidth hint forces full render width regardless of viewport |
-| .xlsx input | Upload real Excel rosters in addition to CSV |
-| Undo/redo | Ctrl+Z / Ctrl+Y on the edit page; ↩ ↪ buttons |
-| Shareable link | "Share link" button generates a public URL for the chart |
-| Living document | Updating and re-sharing the same URL updates what viewers see |
-| Chart persistence | Charts saved by ID in SQLite, reload across sessions via URL |
-| Piece-specific arrangement | "Piece / Title" field on edit page; voice parts changeable per singer per chart |
-| Single-wide section warning | Banner in edit page when any part occupies only 1 seat wide |
-| 2D grid voice part arrangement | Drag parts into row groups (back/front) on configure page |
-| Mixed/shuffle mode | No same-voice-part neighbors using greedy max-heap interleaving |
-| JSON save/load (.choralchart) | Save and restore full chart state via file download/upload |
-| Height warning | Orange highlight when front-row singer is taller than the row behind |
-| Singer withdrawal | Remove button in modal compacts remaining seats |
+| Swap flash | Brief brightness flash on seat swap |
+| Height fade | Height labels fade in/out |
+| html2canvas full-width fix | windowWidth hint forces full render |
+| .xlsx input | Upload Excel rosters in addition to CSV |
+| Undo/redo | Ctrl+Z / Ctrl+Y; ↩ ↪ buttons |
+| Shareable link | "Share link" generates a public URL |
+| Living document | Re-sharing the same URL updates what viewers see |
+| Chart persistence | Charts saved by ID in SQLite |
+| Piece/Title field | Per-chart title |
+| Single-wide section warning | Banner when any part is only 1 seat wide |
+| 2D grid voice part arrangement | Drag parts into row groups |
+| Mixed/shuffle mode | No same-voice-part neighbors |
+| JSON save/load (.choralchart) | Save and restore full chart state |
+| Height warning | Orange highlight when front-row singer is taller than row behind |
+| Singer withdrawal | Remove button in modal compacts seats |
 | Scrollbar-gutter stable | Prevents layout shift when scrollbar appears |
-| Conductor centering | Conductor label properly centered under the choir |
-| pytest test suite | 71 tests covering algorithm and Flask routes |
-| Hosting | Live at https://choralchart.onrender.com (Render, free tier) |
-| Navbar | Sticky ChoralChart navbar on every page |
-| Footer | Shared footer with copyright and GitHub link |
-| README | Setup instructions, CSV format, tech stack |
-| Manual roster entry | Paste-by-part textarea entry with optional height parsing (`Name, 5'10"`) |
-| Optional heights | Singer height is optional; unknown heights sort to the middle of their group |
-| Random roster polish | ±5 variation per section, diverse names, unknown parts get random gender |
-| Unified `/configure` route | Both entry methods post to the same URL |
-| PNG export | Replaced `window.print()` with html2canvas PNG download (full chart, not just visible area) |
-| Dual scrollbar fix | Chart scrolls within panel, no body-level horizontal scroll |
-| Edit page URL | Configure now posts directly to `/edit` (was `/preview`) |
-| ✕ button fix | Remove-section button width and height corrected on roster entry page |
-| ~~PDF export~~ | ~~Replaced by PNG export~~ |
-| ~~Navbar feature~~ | ~~Done~~ |
+| Conductor centering | Properly centered under the choir |
+| Hosting | Fly.io — auto-deploys on push to main via GitHub Actions |
+| Navbar / Footer | Shared across all pages |
+| README | Setup, CSV format, tech stack |
+| Manual roster entry | Paste-by-part with optional height parsing (`Name, 5'10"`) |
+| Optional heights | Unknown heights sort to middle of group |
+| Random roster | ±5 variation per section, diverse names |
+| PNG export | html2canvas — full chart width, title, legend, conductor |
+| Dark mode | Full dark/light theme with toggle |

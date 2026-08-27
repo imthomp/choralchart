@@ -167,7 +167,8 @@
         <div class="card" style="margin-top: 1.5rem;">
             <div class="tab-bar">
                 <button class="tab-btn active" onclick="switchTab('manual', this)">Enter Roster</button>
-                <button class="tab-btn" onclick="switchTab('sample', this)">Sample Roster</button>
+                <button class="tab-btn" onclick="switchTab('sample', this)">Sample</button>
+                <button class="tab-btn" onclick="switchTab('random', this)">Random</button>
                 <button class="tab-btn" onclick="switchTab('upload', this)">Upload</button>
             </div>
 
@@ -233,16 +234,21 @@ Jane Doe,Soprano,64.5</pre>
 
                 <!-- TAB: Sample Roster -->
                 <div id="tab-sample" style="display:none">
-                    <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Try a preloaded roster to explore the editor, or generate placeholder singers.</p>
+                    <p style="margin-bottom: 0.5rem; color: var(--text-muted); font-size: 0.9rem;">Load a BYU ensemble roster to explore the editor.</p>
+                    <p style="margin-bottom: 1rem; color: var(--text-placeholder); font-size: 0.78rem; font-style: italic;">⚠ These are fictional placeholder rosters for demo purposes only — not real BYU student data.</p>
 
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem;">
-                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('satb_choir')">SATB Choir — 40 singers</button>
-                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('mens_chorus')">Men's Chorus — 20 singers</button>
-                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('womens_chorus')">Women's Chorus — 20 singers</button>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_singers')">BYU Singers — 45 singers (SATB)</button>
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_concert_choir')">BYU Concert Choir — 100 singers (SATB)</button>
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_mens_chorus')">BYU Men's Chorus — 200 singers (TTBB)</button>
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_womens_chorus')">BYU Women's Chorus — 200 singers (SSAA)</button>
+                        <button type="button" class="btn btn-secondary btn-full" onclick="selectSample('byu_university_chorale')">BYU University Chorale — 150 singers (SATB)</button>
                     </div>
+                </div>
 
-                    <hr class="configure-divider">
-                    <p style="margin-bottom: 1rem; font-size: 0.875rem; font-weight: 600; color: var(--text-label);">Generate random singers</p>
+                <!-- TAB: Random Roster -->
+                <div id="tab-random" style="display:none">
+                    <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">Generate placeholder singers for testing layouts.</p>
 
                     <div class="form-group">
                         <label for="num_singers">Number of singers:</label>
@@ -254,15 +260,16 @@ Jane Doe,Soprano,64.5</pre>
                     </div>
                 </div>
 
-                <!-- Shared: Voice Part Arrangement + Dimensions -->
+                <!-- Shared: Voice Part Arrangement + Dimensions (hidden on sample tab) -->
+                <div id="shared-settings">
                 <hr class="configure-divider">
 
                 <div>
                     <div class="configure-section-header" onclick="toggleConfigureSection('arr-body', 'arr-indicator')">
                         <h3>Voice Part Arrangement</h3>
-                        <span class="configure-toggle-indicator" id="arr-indicator">▶ Show</span>
+                        <span class="configure-toggle-indicator" id="arr-indicator">▼ Hide</span>
                     </div>
-                    <div id="arr-body" class="configure-section-body" style="display:none;">
+                    <div id="arr-body" class="configure-section-body">
                         <div class="idx-mode-picker">
                             <label class="idx-mode-option active" id="idx-mode-group-label">
                                 <input type="radio" name="arr_mode" value="group" checked>
@@ -289,9 +296,9 @@ Jane Doe,Soprano,64.5</pre>
                 <div style="margin-top: 0.75rem;">
                     <div class="configure-section-header" onclick="toggleConfigureSection('dim-body', 'dim-indicator')">
                         <h3>Dimensions</h3>
-                        <span class="configure-toggle-indicator" id="dim-indicator">▶ Show</span>
+                        <span class="configure-toggle-indicator" id="dim-indicator">▼ Hide</span>
                     </div>
-                    <div id="dim-body" class="configure-section-body" style="display:none;">
+                    <div id="dim-body" class="configure-section-body">
                         <p style="font-size:0.8rem; color:#6b7280; margin-bottom:0.75rem;">Leave blank for auto-calculation.</p>
                         <div class="dimension-inputs">
                             <div class="form-group">
@@ -310,12 +317,14 @@ Jane Doe,Soprano,64.5</pre>
                     </div>
                 </div>
 
+                </div><!-- end #shared-settings -->
+
                 <input type="hidden" name="part_grid" id="idx-part-grid-hidden" value="">
                 <input type="hidden" name="part_order" id="idx-part-order-hidden" value="">
                 <input type="hidden" name="mixed" id="idx-mixed-hidden" value="false">
                 <input type="hidden" name="staggered" value="true">
 
-                <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1rem;">Generate Chart →</button>
+                <button type="submit" id="generate-btn" class="btn btn-primary btn-full" style="margin-top: 1rem;">Generate Chart →</button>
             </form>
         </div>
     </div>
@@ -628,14 +637,21 @@ Jane Doe,Soprano,64.5</pre>
             if (!isUpload) {
                 document.getElementById('tab-manual').style.display = name === 'manual' ? '' : 'none';
                 document.getElementById('tab-sample').style.display = name === 'sample' ? '' : 'none';
+                document.getElementById('tab-random').style.display = name === 'random' ? '' : 'none';
+
+                // Sample tab: no Generate Chart button or shared settings (buttons submit directly)
+                const isSample = name === 'sample';
+                document.getElementById('generate-btn').style.display = isSample ? 'none' : '';
+                document.getElementById('shared-settings').style.display = isSample ? 'none' : '';
 
                 if (name === 'manual') {
                     document.getElementById('entry-type').value = 'manual';
                     idxSyncGrid();
-                } else {
+                } else if (name === 'random') {
                     document.getElementById('entry-type').value = 'random';
                     syncGridFromParts();
                 }
+                // sample: entry-type is set by selectSample() at click time
             }
         }
 

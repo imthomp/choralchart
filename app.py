@@ -44,7 +44,11 @@ def configure_post():
 
         if entry_type == 'sample':
             sample_name = request.form.get('sample_name', '').strip()
-            allowed = {'satb_choir', 'mens_chorus', 'womens_chorus'}
+            allowed = {
+                'satb_choir', 'mens_chorus', 'womens_chorus',
+                'byu_singers', 'byu_concert_choir', 'byu_mens_chorus',
+                'byu_womens_chorus', 'byu_university_chorale',
+            }
             if sample_name not in allowed:
                 flash('Sample not found')
                 return redirect(url_for('index'))
@@ -131,7 +135,11 @@ def upload():
 @app.route('/sample/<name>')
 def load_sample(name):
     """Load a built-in sample roster and open the editor."""
-    allowed = {'satb_choir', 'mens_chorus', 'womens_chorus'}
+    allowed = {
+        'satb_choir', 'mens_chorus', 'womens_chorus',
+        'byu_singers', 'byu_concert_choir', 'byu_mens_chorus',
+        'byu_womens_chorus', 'byu_university_chorale',
+    }
     if name not in allowed:
         flash('Sample not found')
         return redirect(url_for('index'))
